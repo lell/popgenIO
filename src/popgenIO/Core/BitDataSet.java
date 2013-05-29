@@ -116,6 +116,8 @@ public class BitDataSet implements DataSet<Boolean> {
 	
 	@Override
 	public void addSites(double[] positions) {
+		sites = new Site[numsites];
+		assert numsites == positions.length;
 		for (int sid = 0; sid < numsites; sid++) {
 			sites[sid] = new Site(sid, positions[sid]);
 		}

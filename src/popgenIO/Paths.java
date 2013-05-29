@@ -31,7 +31,15 @@ public class Paths {
 	}
 
 	public static String getExperimentsDirectory(String filename) {
-		return getHome() + "/data/experiment/" + filename;
+		return getExperimentDirectory() + filename;
+	}
+
+	public static String getTestDirectory() {
+		return getHome() + "/test/";
+	}
+	
+	public static String getTestDirectory(String filename) {
+		return getTestDirectory() + filename;
 	}
 
 }

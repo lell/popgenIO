@@ -328,7 +328,7 @@ public class BeagleFile {
 		for (Site site : gds.getSites()) {
 			out.print(site.getName());
 			out.print(" ");
-			out.print(FileUtils.printPosition(site.getPosition()));
+			out.print(String.format("%7f", site.getPosition()));
 			out.print(" ");
 			out.print(site.getAlleles()[0]);
 			out.print(" ");
