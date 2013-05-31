@@ -44,9 +44,13 @@ public interface Manager<X> {
 
 	public boolean isPredictable(Site ss, Genotype gg);
 
+	public boolean isPredictable(Site ss, Diplotype dd);
+
 	public boolean isPredictable(Site ss, Haplotype hh);
 
 	public boolean isPredictable(Genotype gg);
+
+	public boolean isPredictable(Diplotype gg);
 
 	public boolean isPredictable(Haplotype hh);
 

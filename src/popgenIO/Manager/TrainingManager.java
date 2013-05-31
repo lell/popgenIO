@@ -11,7 +11,6 @@ import popgenIO.Core.Haplotype;
 import popgenIO.Core.Site;
 
 public class TrainingManager extends AbstractManager {
-	DataSet<Boolean> train;
 	DataSet<Boolean> test;
 
 	public TrainingManager(DataSet<Boolean> train) {
@@ -22,15 +21,25 @@ public class TrainingManager extends AbstractManager {
 	public void wantUnobserved() {
 		DataSet<Boolean> trainset = this.getTrainingSet();
 		for (Site ss : trainset.getSites()) {
+
 			for (Genotype gg : trainset.getGenotypes()) {
 				if (!trainset.isObserved(ss, gg)) {
 					wantPrediction(ss, gg);
+					assert isPredictable(ss, gg);
 				}
 			}
 
+			for (Diplotype dd : trainset.getDiplotypes()) {
+				if (!trainset.isObserved(ss, dd)) {
+					wantPrediction(ss, dd);
+					assert isPredictable(ss, dd);
+				}
+			}
+		
 			for (Haplotype hh : trainset.getHaplotypes()) {
 				if (!trainset.isObserved(ss, hh)) {
 					wantPrediction(ss, hh);
+					assert isPredictable(ss, hh);
 				}
 			}
 		}

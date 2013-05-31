@@ -15,11 +15,11 @@ public class Site implements Comparable {
 	private char[] alleles;
 
 	public Site(int index) {
-		this(index, null, null, new char[]{ '0', '1' });
+		this(index, null, String.format("S%010d", index), new char[]{ '0', '1' });
 	}
 	
 	public Site(int index, Double position) {
-		this(index, position, null, new char[]{ '0', '1' });
+		this(index, position, String.format("S%010d", index), new char[]{ '0', '1' });
 	}
 
 	public Site(int index, Double position, String name) {
@@ -27,6 +27,9 @@ public class Site implements Comparable {
 	}
 
 	public Site(int index, Double position, String name, char[] alleles) {
+		if (name == null) {
+			name = String.format("S%010d", index);
+		}
 		this.index = index;
 		this.position = position;
 		this.name = name;
@@ -99,5 +102,10 @@ public class Site implements Comparable {
 			return ((Integer)getIndex()).compareTo(
 					(Integer)(((Site)other).getIndex()));
 		}
+	}
+	
+	@Override
+	public int hashCode() {
+		return name.hashCode();
 	}
 }

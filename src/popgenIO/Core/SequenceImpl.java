@@ -60,6 +60,6 @@ public abstract class SequenceImpl implements Comparable<Sequence>, Sequence, Se
 	
 	@Override
 	public int hashCode() {
-		return index;
+		return name.hashCode();
 	}
 }

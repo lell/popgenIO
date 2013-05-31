@@ -34,6 +34,7 @@ public class BitDataSet implements DataSet<Boolean> {
 		
 		this.observed = (BitSet) data.observed.clone();
 		this.allele = (BitSet) data.allele.clone();
+		this.sites = Site.copyArray(data.getSites());
 
 		genotypes = new ArrayList();
 		diplotypes = new ArrayList();

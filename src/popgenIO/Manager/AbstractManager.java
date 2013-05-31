@@ -175,26 +175,7 @@ abstract class AbstractManager implements Manager<Boolean>, Cloneable, Serializa
 			}
 		}
 	}
-
-	public void printPredictions() {
-		for (Site ss : allData.getSites()) {
-			for (Genotype gg : allData.getGenotypes()) {
-				if (!isPredictable(ss, gg)) {
-					continue;
-				}
-				System.out.println(ss.getPosition() + " " + gg.getName() + " "
-						+ getPrediction(ss, gg) + " " + allData.get(ss, gg));
-			}
-			for (Haplotype hh : allData.getHaplotypes()) {
-				if (!isPredictable(ss, hh)) {
-					continue;
-				}
-				System.out.println(ss.getPosition() + " " + hh.getName() + " "
-						+ getPrediction(ss, hh) + " " + allData.get(ss, hh));
-			}
-		}
-	}
-
+	
 	protected void wantPrediction(Site ss, Genotype gg) {
 		assert allData.getGenotypes().contains(gg);
 		if (probgenotype00.get(gg).containsKey(ss)) {
@@ -203,6 +184,18 @@ abstract class AbstractManager implements Manager<Boolean>, Cloneable, Serializa
 		probgenotype00.get(gg).put(ss, 0.0);
 		probgenotype01.get(gg).put(ss, 0.0);
 		probgenotype11.get(gg).put(ss, 0.0);
+	}
+	
+
+	protected void wantPrediction(Site ss, Diplotype dd) {
+		assert allData.getDiplotypes().contains(dd);
+		if (probdiplotype00.get(dd).containsKey(ss)) {
+			return;
+		}
+		probdiplotype01.get(dd).put(ss, 0.0);
+		probdiplotype10.get(dd).put(ss, 0.0);
+		probdiplotype01.get(dd).put(ss, 0.0);
+		probdiplotype11.get(dd).put(ss, 0.0);
 	}
 
 	protected void wantPrediction(Site ss, Haplotype hh) {
@@ -220,6 +213,13 @@ abstract class AbstractManager implements Manager<Boolean>, Cloneable, Serializa
 				&& probgenotype00.get(gg).containsKey(ss);
 	}
 
+	
+	@Override
+	public boolean isPredictable(Site ss, Diplotype dd) {
+		return probdiplotype00.containsKey(dd)
+				&& probdiplotype00.get(dd).containsKey(ss);
+	}
+
 	@Override
 	public boolean isPredictable(Site ss, Haplotype hh) {
 		return probhaplotype0.containsKey(hh)
@@ -230,6 +230,12 @@ abstract class AbstractManager implements Manager<Boolean>, Cloneable, Serializa
 	public boolean isPredictable(Genotype gg) {
 		return probgenotype00.containsKey(gg)
 				&& probgenotype00.get(gg).size() > 0;
+	}
+	
+	@Override
+	public boolean isPredictable(Diplotype dd) {
+		return probdiplotype00.containsKey(dd)
+				&& probdiplotype00.get(dd).size() > 0;
 	}
 
 	@Override
@@ -278,6 +284,7 @@ abstract class AbstractManager implements Manager<Boolean>, Cloneable, Serializa
 	public void collect(Site ss, Haplotype hh, double prob0, double prob1) {
 		HashMap<Site, Double> map;
 		map = probhaplotype0.get(hh);
+		assert map != null;
 		map.put(ss, map.get(ss) + prob0);
 		map = probhaplotype1.get(hh);
 		map.put(ss, map.get(ss) + prob1);
@@ -418,6 +425,10 @@ abstract class AbstractManager implements Manager<Boolean>, Cloneable, Serializa
 			for (Genotype geno : trainset.getGenotypes()) {
 				trainset.setObserved(ss, geno, !isPredictable(ss, geno)
 						&& allData.isObserved(ss, geno));
+			}
+			for (Diplotype diplo : trainset.getDiplotypes()) {
+				trainset.setObserved(ss, diplo, !isPredictable(ss, diplo)
+						&& allData.isObserved(ss, diplo));
 			}
 			for (Haplotype haplo : trainset.getHaplotypes()) {
 				trainset.setObserved(ss, haplo, !isPredictable(ss, haplo)
