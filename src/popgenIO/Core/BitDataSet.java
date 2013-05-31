@@ -26,14 +26,18 @@ public class BitDataSet implements DataSet<Boolean> {
 		genotypes = new ArrayList();
 		diplotypes = new ArrayList();
 		haplotypes = new ArrayList();
-		
 	}
 
 	public BitDataSet(BitDataSet data) {
 		this.numsites = data.numsites;
 		this.numsequences = data.numsequences;
+		
 		this.observed = (BitSet) data.observed.clone();
 		this.allele = (BitSet) data.allele.clone();
+
+		genotypes = new ArrayList();
+		diplotypes = new ArrayList();
+		haplotypes = new ArrayList();
 		
 		for (Genotype genotype : data.getGenotypes()) {
 			genotypes.add(genotype.clone());
