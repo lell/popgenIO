@@ -105,6 +105,7 @@ public class BitDataSet implements DataSet<Boolean> {
 			setObserved(sid, qid, false);
 		} else {
 			allele.set(index(sid, qid), aa);
+			setObserved(sid, qid, true);
 		}
 	}
 

@@ -37,6 +37,7 @@ public class FlatFile {
 		// Strip the header + collect all the lines with haps on them
 		while(fr.hasNext()) {
 			String line = fr.nextLine();
+			line = line.replaceAll("-1", "?");
 			line = line.replaceAll("\\s+", "");
 
 			boolean hap = true;
@@ -80,7 +81,7 @@ public class FlatFile {
 					System.exit(-1);	
 				}
 			}
-			data.addHaplotype(String.format("H%04d", i), haplotype);
+			data.addHaplotype(haplotype);
 		}
 		return data;
 	}
