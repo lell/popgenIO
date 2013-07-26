@@ -1,4 +1,4 @@
-libnp
+popgenIO
 =====
 input/output for various file formats used in population genetics + data structures to handle imputation and phasing
 
