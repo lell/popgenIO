@@ -4,6 +4,9 @@
 
 package popgenIO;
 
+/* This class returns the path of various data and experimental output directories.
+ */
+
 public class Paths {
 
 	public static String getHome() {

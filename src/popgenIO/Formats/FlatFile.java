@@ -64,7 +64,7 @@ public class FlatFile {
 		DataSet data = new BitDataSet(numsites, numSequences);
 		data.addSites(arange(numsites));
 		for (int i = 0; i < numSequences; i++) {
-			Boolean[] haplotype = new Boolean[numSequences];
+			Boolean[] haplotype = new Boolean[numsites];
 			for (int t = 0; t < numsites; t++) {
 				switch (lines.get(i).charAt(t)) {
 				case '0':

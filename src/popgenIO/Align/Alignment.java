@@ -27,7 +27,6 @@ public class Alignment {
 			if (rsid <= 0) {
 				continue;
 			}
-			
 			rsidKeyed.put(rsid, site);
 			rsids.add(rsid);
 		}

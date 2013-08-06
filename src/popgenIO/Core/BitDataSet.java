@@ -4,6 +4,8 @@
 
 package popgenIO.Core;
 
+import static libnp.util.Operation.arange;
+
 import java.util.*;
 
 public class BitDataSet implements DataSet<Boolean> {
@@ -80,6 +82,20 @@ public class BitDataSet implements DataSet<Boolean> {
 	@Override
 	public BitDataSet clone() {
 		return new BitDataSet(this);
+	}
+	
+	public static BitDataSet unobserved(int T, int N) {
+		BitDataSet data = new BitDataSet(T, N);
+		data.addSites(arange(T));
+		
+		for (int i = 0; i < N; i++) {
+			Boolean[] haplotype = new Boolean[T];
+			for (int t = 0; t < T; t++) {
+				haplotype[t] = null;
+			}
+			data.addHaplotype(haplotype);
+		}
+		return data;
 	}
 	
 	final private boolean isObserved(int sid, int qid) {
