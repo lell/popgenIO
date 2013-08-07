@@ -38,6 +38,12 @@ public class FlatFile {
 		while(fr.hasNext()) {
 			String line = fr.nextLine();
 			line = line.replaceAll("-1", "?");
+			line = line.replaceAll("NaN", "?");
+			line = line.replaceAll("nan", "?");
+			
+			// If we save a real matrix from matlab with '-ascii', we get 1.000 and 0.000 for 1 and 0
+			line = line.replaceAll("1\\.[0]+", "1");
+			line = line.replaceAll("0\\.[0]+", "0");
 			line = line.replaceAll("\\s+", "");
 
 			boolean hap = true;
@@ -48,6 +54,7 @@ public class FlatFile {
 					break;
 				}
 			}
+			
 			if (hap) {
 				if (line.length() != numsites) {
 					lines.clear();
