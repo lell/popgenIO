@@ -6,7 +6,7 @@ package popgenIO.Core;
 
 import java.util.*;
 
-public class RealDataSet implements DataSet<Double> {
+public abstract class RealDataSet implements DataSet<Double> {
 	BitSet observed = null;
 	double[][] allele = null;
 	int numsequences = 0;
@@ -63,9 +63,9 @@ public class RealDataSet implements DataSet<Double> {
 	}
 	
 	@Override
-	public RealDataSet clone() {
+	public abstract RealDataSet clone(); /* {
 		return new RealDataSet(this);
-	}
+	}*/
 	
 	final private boolean isObserved(int sid, int qid) {
 		return observed.get(index(sid, qid));
@@ -326,7 +326,7 @@ public class RealDataSet implements DataSet<Double> {
 		return null;
 	}
 
-	@Override
+	/*@Override
 	public DataSet<Double> filter(Site[] sites) {
 		RealDataSet other = new RealDataSet(sites.length, this.numSequences());
 
@@ -381,5 +381,5 @@ public class RealDataSet implements DataSet<Double> {
 			}
 		}
 		return other;
-	}
+	}*/
 }

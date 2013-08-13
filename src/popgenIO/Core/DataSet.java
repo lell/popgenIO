@@ -7,6 +7,8 @@ package popgenIO.Core;
 import java.util.ArrayList;
 import java.util.List;
 
+import libnp.util.Pair;
+
 public interface DataSet<X> {
 	
 	public abstract DataSet<X> clone();
@@ -14,6 +16,7 @@ public interface DataSet<X> {
 	public abstract void addSites(Site[] sites);
 	public abstract void addSites(double[] positions);
 	public abstract void addSites(double[] positions, String[] names);
+	public abstract int indexOfSite(Site ss);
 
 	/**
 	 * data[s] values: 0 : homozygous 0 1 : heterozygous 2 : homozygous 1 -1 :
@@ -77,6 +80,8 @@ public interface DataSet<X> {
 
 	public GenotypeValue getGenotypeValue(Site site, Genotype gg);
 
+	public double empiricalMean(Site ss);
 	public abstract DataSet<X> filter(Site[] sites);
+	public abstract Pair<DataSet<X>, DataSet<X>> filterFixed();
 
 }

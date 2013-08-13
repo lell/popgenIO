@@ -8,6 +8,9 @@ import static libnp.util.Operation.arange;
 
 import java.util.*;
 
+import static libnp.util.Operation.concat;
+import libnp.util.Pair;
+
 public class BitDataSet implements DataSet<Boolean> {
 	BitSet observed = null;
 	BitSet allele = null;
@@ -15,10 +18,12 @@ public class BitDataSet implements DataSet<Boolean> {
 	int numsites = 0;
 	int index;
 	Site[] sites;
+	Map<String, Integer> site_indices;
+	
 	List<Genotype> genotypes;
 	List<Diplotype> diplotypes;
 	List<Haplotype> haplotypes;
-
+	
 	public BitDataSet(int numsites, int numsequences) {
 		this.numsites = numsites;
 		this.numsequences = numsequences;
@@ -133,7 +138,11 @@ public class BitDataSet implements DataSet<Boolean> {
 	@Override
 	public void addSites(Site[] sites) {
 		assert sites == null;
+		Arrays.sort(sites);
 		this.sites = sites;
+		for (int sid = 0; sid < numsites; sid++) {
+			site_indices.put(sites[sid].getName(), sid);
+		}
 	}
 	
 	@Override
@@ -142,6 +151,7 @@ public class BitDataSet implements DataSet<Boolean> {
 		assert numsites == positions.length;
 		for (int sid = 0; sid < numsites; sid++) {
 			sites[sid] = new Site(sid, positions[sid]);
+			site_indices.put(sites[sid].getName(), sid);
 		}
 	}
 
@@ -149,9 +159,14 @@ public class BitDataSet implements DataSet<Boolean> {
 	public void addSites(double[] positions, String[] names) {
 		for (int sid = 0; sid < numsites; sid++) {
 			sites[sid] = new Site(sid, positions[sid], names[sid]);
+			site_indices.put(sites[sid].getName(), sid);
 		}
 	}
-	
+
+	@Override
+	public int indexOfSite(Site site) {
+		return site_indices.get(site.getName());
+	}
 	
 	@Override
 	public Genotype addGenotype(String name, Boolean[][] data) {
@@ -423,5 +438,183 @@ public class BitDataSet implements DataSet<Boolean> {
 			}
 		}
 		return other;
+	}
+	
+	public double empiricalMean(Site ss) {
+		int numer=0;
+		int denom=0;
+		for (Haplotype hh : getHaplotypes()) {
+			if (isObserved(ss, hh)) {
+				Boolean allele = get(ss, hh);
+				if (allele == true) {
+					numer++;
+					denom++;
+				} else if (allele == false) {
+					denom++;
+				} else {
+					assert false;
+				}
+			}
+		}
+		for (Diplotype dd : getDiplotypes()) {
+			if (isObserved(ss, dd)) {
+				Boolean allele[] = get(ss, dd);
+				if (allele[0] == true) {
+					numer++;
+					denom++;
+				} else if (allele[0] == false) {
+					denom++;
+				}
+				
+				if (allele[1] == true) {
+					numer++;
+					denom++;
+				} else if (allele[1] == false) {
+					denom++;
+				}
+			}
+		}
+		for (Genotype gg : getGenotypes()) {
+			if (isObserved(ss, gg)) {
+				Boolean allele[] = get(ss, gg);
+				if (allele[0] == true) {
+					numer++;
+					denom++;
+				} else if (allele[0] == false) {
+					denom++;
+				}
+				
+				if (allele[1] == true) {
+					numer++;
+					denom++;
+				} else if (allele[1] == false) {
+					denom++;
+				}
+			}
+		}
+		return ((double)numer)/((double)denom);
+	}
+	
+	private boolean isFixed(Site ss) {
+		boolean seen0 = false;
+		boolean seen1 = false;
+		for (Haplotype hh : getHaplotypes()) {
+			if (this.isObserved(ss, hh)) {
+				Boolean allele = this.get(ss, hh);
+				if (allele == true) {
+					seen1 = true;
+				} else if (allele == false) {
+					seen0 = true;
+				} else {
+					assert false;
+				}
+			}
+			if (seen0 && seen1) {
+				return false;
+			}
+		}
+		for (Diplotype dd : getDiplotypes()) {
+			if (this.isObserved(ss, dd)) {
+				Boolean allele[] = this.get(ss, dd);
+				if (allele[0] == true || allele[1] == true) {
+					seen1 = true;
+				} else if (allele[0] == false || allele[1] == false) {
+					seen0 = true;
+				} else {
+					assert false;
+				}
+			}
+			if (seen0 && seen1) {
+				return false;
+			}
+		}
+		for (Genotype gg : getGenotypes()) {
+			if (this.isObserved(ss, gg)) {
+				Boolean allele[] = this.get(ss, gg);
+				if (allele[0] == true || allele[1] == true) {
+					seen1 = true;
+				} else if (allele[0] == false || allele[1] == false) {
+					seen0 = true;
+				} else {
+					assert false;
+				}
+			}
+			if (seen0 && seen1) {
+				return false;
+			}
+		}
+		
+		return true;
+	}
+
+	public static BitDataSet combine(BitDataSet left, BitDataSet right) {
+		Site[] left_sites = left.getSites();
+		Site[] right_sites = right.getSites();
+		
+		int total = left_sites.length + right_sites.length;
+		BitDataSet combined = new BitDataSet(total,
+				left.numSequences());
+		
+		combined.addSites(concat(left_sites, right_sites));
+		
+		for (Haplotype hh : left.getHaplotypes()) {
+			Boolean[] data = new Boolean[total];
+			for (Site ss : left.getSites()) {
+				int index = combined.indexOfSite(ss);
+				if (left.isObserved(ss, hh)) {
+					data[index] = left.get(ss, hh);
+				} else {
+					data[index] = null;
+				}
+			}
+			combined.addHaplotype(hh.getName(), data);
+		}
+		
+		for (Diplotype dd : left.getDiplotypes()) {
+			Boolean[][] data = new Boolean[total][2];
+			for (Site ss : left.getSites()) {
+				int index = combined.indexOfSite(ss);
+				if (left.isObserved(ss, dd)) {
+					data[index] = left.get(ss, dd);
+				} else {
+					data[index][0] = null;
+					data[index][1] = null;
+				}
+			}
+			combined.addDiplotype(dd.getName(), data);
+		}
+		
+		for (Genotype gg : left.getGenotypes()) {
+			Boolean[][] data = new Boolean[total][2];
+			for (Site ss : left.getSites()) {
+				int index = combined.indexOfSite(ss);
+				if (left.isObserved(ss, gg)) {
+					data[index] = left.get(ss, gg);
+				} else {
+					data[index][0] = null;
+					data[index][1] = null;
+				}
+			}
+			combined.addGenotype(gg.getName(), data);
+		}
+		
+		return combined;
+	}
+	
+	// left = no fixed, right = fixed
+	public Pair<DataSet<Boolean>, DataSet<Boolean>> filterFixed() {
+		List<Site> fixed = new ArrayList();
+		List<Site> no_fixed = new ArrayList();
+		
+		for (Site site : getSites()) {
+			if (isFixed(site)) {
+				fixed.add(site);
+			} else {
+				no_fixed.add(site);
+			}
+		}
+		
+		return new Pair(filter((Site[]) no_fixed.toArray()),
+				filter((Site[]) fixed.toArray()));
 	}
 }
