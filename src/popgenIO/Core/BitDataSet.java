@@ -18,7 +18,7 @@ public class BitDataSet implements DataSet<Boolean> {
 	int numsites = 0;
 	int index;
 	Site[] sites;
-	Map<String, Integer> site_indices;
+	Map<String, Integer> site_indices = new HashMap();
 	
 	List<Genotype> genotypes;
 	List<Diplotype> diplotypes;
