@@ -16,7 +16,52 @@ import popgenIO.Core.Site;
 import popgenIO.Formats.FlatFile;
 import static popgenIO.Paths.getTestDirectory;
 
+import static libnp.util.Operation.dump;
+import static libnp.util.Operation.undump;
+
 public class TestFlatFile {
+	
+	@Test
+	public void test_sites01() {
+		String testdir = getTestDirectory() + "/popgenIO/TestFlatFile/";
+		(new File(testdir)).mkdirs();
+		String fin = testdir + "/tst01_in";
+		String main_content = "001\n100\n101\n???\n";
+		String site_content = "1 rs001 A/T\n2 rs002 G/C\n3 rs003 A/C\n";
+		
+		dump(fin, main_content);
+		dump(fin + ".sites", site_content);
+		
+		DataSet<Boolean> data = FlatFile.read(fin);
+		
+		String fout = testdir + "/tst01_out";
+		FlatFile.write(data, fout);
+		
+		assertTrue(main_content.equals(undump(fout)));
+		assertTrue(undump(fout + ".sites"), site_content.equals(undump(fout + ".sites")));
+	}
+	
+	
+	@Test
+	public void test_samples01() {
+		String testdir = getTestDirectory() + "/popgenIO/TestFlatFile/";
+		(new File(testdir)).mkdirs();
+		String fin = testdir + "/tsm01_in";
+		String main_content = "001\n100\n101\n???\n";
+		String sample_content = "H01\nH02\nH03\nH04\n";
+		
+		dump(fin, main_content);
+		dump(fin + ".samples", sample_content);
+		
+		DataSet<Boolean> data = FlatFile.read(fin);
+		
+		String fout = testdir + "/tsm01_out";
+		FlatFile.write(data, fout);
+		
+		assertTrue(main_content.equals(undump(fout)));
+		assertTrue(undump(fout + ".samples"), sample_content.equals(undump(fout + ".samples")));
+	}
+
 
 	public void TestRead(String name, String file, int[][] data) {
 		String testdir = getTestDirectory() + "/popgenIO/" + "TestFlatFile" + "/" + name + "/";

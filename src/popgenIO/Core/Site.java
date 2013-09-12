@@ -6,106 +6,58 @@ package popgenIO.Core;
 
 import java.util.HashMap;
 import java.util.Map;
+
+import static java.lang.Math.round;
+
 import static libnp.util.Float.compareFloats;
 
-public class Site implements Comparable {
+public class Site extends AbstractSite {
 	private int index;
-	private Double position;
-	private String name;
-	private char[] alleles;
 
 	public Site(int index) {
-		this(index, null, String.format("S%010d", index), new char[]{ '0', '1' });
+		this(index, index, null, null);
+		assert getName() != null;
 	}
 	
-	public Site(int index, Double position) {
-		this(index, position, String.format("S%010d", index), new char[]{ '0', '1' });
+	public Site(int index, double position) {
+		this(index, position, null, null);
+		assert getName() != null;
 	}
 
-	public Site(int index, Double position, String name) {
-		this(index, position, name, new char[]{ '0', '1' });
+	public Site(int index, double position, String name) {
+		this(index, position, name, null);
+		assert getName() != null;
 	}
 
-	public Site(int index, Double position, String name, char[] alleles) {
+	public Site(int index, GlobalSite site) {
+		this(index, site.getPosition(), site.getName(), site.getAlleles());
+		assert getName() != null;
+	}
+	
+	public Site(int index, double position, String name, char[] alleles) {
 		if (name == null) {
-			name = String.format("S%010d", index);
+			if (compareFloats(position, round(position), 1e-10) == 0) {
+				name = String.format("S%010d", (int)position);
+			} else {
+				name = String.format("S%3.7f", position);
+			}
 		}
+		
+		if (alleles == null) {
+			alleles = new char[]{ '0', '1' };
+		}
+		this.setPosition(position);
+		this.setName(name);
+		this.setAlleles(alleles);
+		assert index >= 0;
 		this.index = index;
-		this.position = position;
-		this.name = name;
-		this.alleles = alleles;
-	}
-
-	public static Site[] copyArray(Site[] sites) {
-		Site[] newSites = new Site[sites.length];
-		int i = 0;
-		for (Site site : sites) {
-			Site newSite = new Site(i, site.position, site.name, site.alleles);
-			newSites[i++] = newSite;
-		}
-		return newSites;
 	}
 
 	public int getIndex() {
 		return index;
 	}
-
-	public double getPosition() {
-		return position;
-	}
 	
-	public String getName() {
-		return name;
-	}
-
-	public char[] getAlleles() {
-		return alleles;
-	}
-	
-	public void setIndex(int index) {
-		this.index = index;
-	}
-
-	public void setPosition(double position) {
-		this.position = position;
-	}
-
-	public void setName(String name) {
-		this.name = name;
-	}
-
-	public void setAlleles(char[] alleles){
-		this.alleles = alleles;
-	}
-	
-	@Override
-	public boolean equals(Object obj) {
-		if (obj == null) {
-			return false;
-		}
-		if (getClass() != obj.getClass()) {
-			return false;
-		}
-		final Site other = (Site) obj;
-		if (this.index != other.index) {
-			return false;
-		}
-		return true;
-	}
-
-	@Override
-	public int compareTo(Object other) {
-		if (position != null) {
-			return ((Double)getPosition()).compareTo(
-					(Double)(((Site)other).getPosition()));
-		} else {
-			return ((Integer)getIndex()).compareTo(
-					(Integer)(((Site)other).getIndex()));
-		}
-	}
-	
-	@Override
-	public int hashCode() {
-		return name.hashCode();
+	public GlobalSite globalize() {
+		return new GlobalSite(getPosition(), getName(), getAlleles());
 	}
 }

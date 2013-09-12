@@ -6,15 +6,11 @@ package popgenIO.Core;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Collection;
 
 public interface DataSet<X> {
 	
 	public abstract DataSet<X> clone();
-	
-	public abstract void addSites(Site[] sites);
-	public abstract void addSites(double[] positions);
-	public abstract void addSites(double[] positions, String[] names);
-
 	/**
 	 * data[s] values: 0 : homozygous 0 1 : heterozygous 2 : homozygous 1 -1 :
 	 * missing
@@ -30,35 +26,32 @@ public interface DataSet<X> {
 	
 	public abstract Haplotype addHaplotype(String name, X[] data);
 	public abstract Haplotype addHaplotype(X[] data);
-
+	public abstract Site addSite(GlobalSite site);
+	
 	public abstract int numSites();
-
 	public abstract int numGenotypes();
-
 	public abstract int numDiplotypes();
-
 	public abstract int numHaplotypes();
-
 	public abstract int numSequences();
 
-	public abstract Site[] getSites();
-
+	public abstract List<Site> getSites();
 	public abstract List<Genotype> getGenotypes();
-
 	public abstract List<Haplotype> getHaplotypes();
-
 	public abstract List<Diplotype> getDiplotypes();
 
+	public abstract Site getSite(String name);
+	public abstract Genotype getGenotype(String name);
+	public abstract Diplotype getDiplotype(String name);
+	public abstract Haplotype getHaplotype(String name);
+	
+	public abstract Site localize(GlobalSite site);
+	
 	public abstract boolean isObserved(Site ss, Genotype gg);
-
 	public abstract boolean isObserved(Site ss, Haplotype hh);
-
 	public abstract boolean isObserved(Site ss, Diplotype dd);
 
 	public abstract void setObserved(Site ss, Genotype gg, boolean obs);
-
 	public abstract void setObserved(Site ss, Haplotype hh, boolean obs);
-
 	public abstract void setObserved(Site ss, Diplotype dd, boolean obs);
 
 	public abstract X[] get(Site ss, Genotype gg);
@@ -77,6 +70,9 @@ public interface DataSet<X> {
 
 	public GenotypeValue getGenotypeValue(Site site, Genotype gg);
 
-	public abstract DataSet<X> filter(Site[] sites);
+
+	public DataSet<X> combine(DataSet<X> other);
+	public abstract DataSet<X> filter(List<GlobalSite> sites);
+	public abstract DataSet<X> filterSequences(List<Sequence> sequences);
 
 }

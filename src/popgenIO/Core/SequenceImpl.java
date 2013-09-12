@@ -55,7 +55,7 @@ public abstract class SequenceImpl implements Comparable<Sequence>, Sequence, Se
 	public int compareTo(Sequence ss) {
 		assert ss != null;
 		assert getClass() == ss.getClass();
-		return ((Integer) index).compareTo(ss.getIndex());
+		return name.compareTo(ss.getName());
 	}
 	
 	@Override

@@ -16,18 +16,19 @@ import popgenIO.Paths;
 import popgenIO.Core.DataSet;
 import popgenIO.Core.Genotype;
 import popgenIO.Core.Site;
+import popgenIO.Core.GlobalSite;
 
 public class Alignment {
 	public static<T> DataSet<T> align(DataSet<T> gds) throws Exception {
 		List<Integer> rsids = new ArrayList();
-		Map<Integer, Site> rsidKeyed = new HashMap();
+		Map<Integer, GlobalSite> rsidKeyed = new HashMap();
 
 		for (Site site : gds.getSites()) {
 			int rsid = getRsid(site.getName());
 			if (rsid <= 0) {
 				continue;
 			}
-			rsidKeyed.put(rsid, site);
+			rsidKeyed.put(rsid, site.globalize());
 			rsids.add(rsid);
 		}
 
@@ -54,10 +55,11 @@ public class Alignment {
 			}
 		}
 		
-		List<Site> sites = new ArrayList();
+		List<GlobalSite> sites = new ArrayList();
 		sites.addAll(rsidKeyed.values());
+		
 		Collections.sort(sites);
-		return gds.filter((Site[])sites.toArray());
+		return gds.filter(sites);
 	}
 
 	private static int getRsid(String s) {

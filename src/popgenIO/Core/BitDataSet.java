@@ -4,9 +4,14 @@
 
 package popgenIO.Core;
 
-import static libnp.util.Operation.arange;
-
-import java.util.*;
+import java.util.BitSet;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 public class BitDataSet implements DataSet<Boolean> {
 	BitSet observed = null;
@@ -14,10 +19,12 @@ public class BitDataSet implements DataSet<Boolean> {
 	int numsequences = 0;
 	int numsites = 0;
 	int index;
-	Site[] sites;
-	List<Genotype> genotypes;
-	List<Diplotype> diplotypes;
-	List<Haplotype> haplotypes;
+	int site_index = 0;
+	
+	SortedMap<String, Site> sites;
+	LinkedHashMap<String, Genotype> genotypes;
+	LinkedHashMap<String, Diplotype> diplotypes;
+	LinkedHashMap<String, Haplotype> haplotypes;
 
 	public BitDataSet(int numsites, int numsequences) {
 		this.numsites = numsites;
@@ -25,34 +32,37 @@ public class BitDataSet implements DataSet<Boolean> {
 		observed = new BitSet(numsequences * numsites);
 		allele = new BitSet(numsequences * numsites);
 		
-		genotypes = new ArrayList();
-		diplotypes = new ArrayList();
-		haplotypes = new ArrayList();
+		sites = new TreeMap();
+		genotypes = new LinkedHashMap();		
+		diplotypes = new LinkedHashMap();		
+		haplotypes = new LinkedHashMap();
 	}
 
 	public BitDataSet(BitDataSet data) {
-		this.numsites = data.numsites;
-		this.numsequences = data.numsequences;
+		this(data.numsites, data.numsequences);
 		
 		this.observed = (BitSet) data.observed.clone();
 		this.allele = (BitSet) data.allele.clone();
-		this.sites = Site.copyArray(data.getSites());
-
-		genotypes = new ArrayList();
-		diplotypes = new ArrayList();
-		haplotypes = new ArrayList();
+		for (Site site : data.getSites()) {
+			addSite(site.globalize());
+		}
 		
 		for (Genotype genotype : data.getGenotypes()) {
-			genotypes.add(genotype.clone());
+			genotypes.put(genotype.getName(), genotype.clone());
 		}
 		for (Diplotype diplotype: data.getDiplotypes()) {
-			diplotypes.add(diplotype.clone());
+			diplotypes.put(diplotype.getName(), diplotype.clone());
 		}
 		for (Haplotype haplotype : data.getHaplotypes()) {
-			haplotypes.add(haplotype.clone());
+			haplotypes.put(haplotype.getName(), haplotype.clone());
 		}
 	}
-
+	
+	@Override
+	public Site localize(GlobalSite site) {
+		return sites.get(site.getName());
+	}
+	
 	@Override
 	public int numSites() {
 		return numsites;
@@ -65,18 +75,58 @@ public class BitDataSet implements DataSet<Boolean> {
 	
 	@Override
 	public List<Genotype> getGenotypes() {
-		return genotypes;
+		List<Genotype> ggs = new ArrayList();
+		ggs.addAll(genotypes.values());
+		return ggs;
 	}
 
 	@Override
 	public List<Diplotype> getDiplotypes() {
-		return diplotypes;
+		List<Diplotype> dds = new ArrayList();
+		dds.addAll(diplotypes.values());
+		return dds;
 	}
-	
 
 	@Override
 	public List<Haplotype> getHaplotypes() {
-		return haplotypes;
+		List<Haplotype> hhs = new ArrayList();
+		hhs.addAll(haplotypes.values());
+		return hhs;
+	}
+	
+	@Override
+	public List<Site> getSites() {
+		List<Site> sss = new ArrayList();
+		sss.addAll(sites.values());
+		return sss;
+	}
+	
+	@Override
+	public Site getSite(String name) {
+		return sites.get(name);
+	}
+	
+	@Override
+	public Genotype getGenotype(String name) {
+		return genotypes.get(name);
+	}
+
+	@Override
+	public Diplotype getDiplotype(String name) {
+		return diplotypes.get(name);
+	}
+
+	@Override
+	public Haplotype getHaplotype(String name) {
+		return haplotypes.get(name);
+	}
+	
+	@Override
+	public Site addSite(GlobalSite site) {
+		assert site != null;
+		Site localized = new Site(site_index++, site);
+		sites.put(site.getName(), localized);
+		return localized;
 	}
 	
 	@Override
@@ -86,7 +136,9 @@ public class BitDataSet implements DataSet<Boolean> {
 	
 	public static BitDataSet unobserved(int T, int N) {
 		BitDataSet data = new BitDataSet(T, N);
-		data.addSites(arange(T));
+		for (int t = 0; t < T; t++) {
+			data.addSite(new Site(t).globalize());
+		}
 		
 		for (int i = 0; i < N; i++) {
 			Boolean[] haplotype = new Boolean[T];
@@ -131,30 +183,10 @@ public class BitDataSet implements DataSet<Boolean> {
 	}
 	
 	@Override
-	public void addSites(Site[] sites) {
-		assert sites == null;
-		this.sites = sites;
-	}
-	
-	@Override
-	public void addSites(double[] positions) {
-		sites = new Site[numsites];
-		assert numsites == positions.length;
-		for (int sid = 0; sid < numsites; sid++) {
-			sites[sid] = new Site(sid, positions[sid]);
-		}
-	}
-
-	@Override
-	public void addSites(double[] positions, String[] names) {
-		for (int sid = 0; sid < numsites; sid++) {
-			sites[sid] = new Site(sid, positions[sid], names[sid]);
-		}
-	}
-	
-	
-	@Override
 	public Genotype addGenotype(String name, Boolean[][] data) {
+		if (name == null) {
+			name = String.format("G%06d", index);
+		}
 		Genotype genotype = new Genotype(name, index);
 		for (int t = 0; t < numsites; t++) {
 			if (data[t][0] != null) {
@@ -170,17 +202,20 @@ public class BitDataSet implements DataSet<Boolean> {
 			}
 		}
 		index += 2;
-		genotypes.add(genotype);
+		genotypes.put(name, genotype);
 		return genotype;
 	}
 
 	@Override
 	public Genotype addGenotype(Boolean[][] data) {
-		return addGenotype(String.format("G%06d", index), data);
+		return addGenotype(null, data);
 	}
 
 	@Override
 	public Diplotype addDiplotype(String name, Boolean[][] data) {
+		if (name == null) {
+			name = String.format("D%06d", index);
+		}
 		Diplotype diplotype = new Diplotype(name, index);
 		for (int t = 0; t < numsites; t++) {
 			if (data[t][0] != null) {
@@ -196,17 +231,20 @@ public class BitDataSet implements DataSet<Boolean> {
 			}
 		}
 		index += 2;
-		diplotypes.add(diplotype);
+		diplotypes.put(name, diplotype);
 		return diplotype;
 	}
 
 	@Override
 	public Diplotype addDiplotype(Boolean[][] data) {
-		return addDiplotype(String.format("D%06d", index), data);
+		return addDiplotype(null, data);
 	}
 
 	@Override
 	public Haplotype addHaplotype(String name, Boolean[] data) {
+		if (name == null) {
+			name = String.format("H%06d", index);
+		}
 		Haplotype haplotype = new Haplotype(name, index);
 		for (int t = 0; t < numsites; t++) {
 			if (data[t] != null) {
@@ -216,13 +254,13 @@ public class BitDataSet implements DataSet<Boolean> {
 			}
 		}
 		index += 1;
-		haplotypes.add(haplotype);
+		haplotypes.put(name, haplotype);
 		return haplotype;
 	}
 
 	@Override
 	public Haplotype addHaplotype(Boolean[] data) {
-		return addHaplotype("H%06d", data);
+		return addHaplotype(null, data);
 	}
 
 	@Override
@@ -239,12 +277,6 @@ public class BitDataSet implements DataSet<Boolean> {
 	public int numHaplotypes() {
 		return haplotypes.size();
 	}
-
-	@Override
-	public Site[] getSites() {
-		return sites;
-	}
-
 
 	@Override
 	public boolean isObserved(Site ss, Genotype gg) {
@@ -368,59 +400,164 @@ public class BitDataSet implements DataSet<Boolean> {
 	}
 
 	@Override
-	public DataSet<Boolean> filter(Site[] sites) {
-		BitDataSet other = new BitDataSet(sites.length, this.numSequences());
+	public DataSet<Boolean> combine(DataSet<Boolean> other) {
+		SortedSet<GlobalSite> combined = new TreeSet();
+		
+		for (Site site : getSites()) {
+			combined.add(site.globalize());
+		}
 
-		other.addSites(Site.copyArray(sites));
-		Site[] other_sites = other.getSites();
-		
-		for (Genotype genotype : getGenotypes()) {
-			Genotype other_genotype = genotype.clone();
-			other.genotypes.add(other_genotype);
-			for (int sid = 0; sid < sites.length; sid++) {
-				Site site = sites[sid];
-				Site other_site = other_sites[sid];
-				if (this.isObserved(site, genotype)) {
-					other.setObserved(other_site, other_genotype, true);
-					other.set(other_site, other_genotype,
-							get(site, genotype));
-				} else {
-					other.setObserved(other_site, other_genotype, false);
-				}
-			}
-		}
-		for (Diplotype diplotype : getDiplotypes()) {
-			Diplotype other_diplotype = diplotype.clone();
-			other.diplotypes.add(other_diplotype);
-			
-			for (int sid = 0; sid < sites.length; sid++) {
-				Site site = sites[sid];
-				Site other_site = other_sites[sid];
-				if (this.isObserved(site, diplotype)) {
-					other.setObserved(other_site, other_diplotype, true);
-					other.set(other_site, other_diplotype,
-							get(site, diplotype));
-				} else {
-					other.setObserved(other_site, other_diplotype, false);
-				}
-			}
+		for (Site site : other.getSites()) {
+			combined.add(site.globalize());
 		}
 		
-		for (Haplotype haplotype : getHaplotypes()) {
-			Haplotype other_haplotype = haplotype.clone();
-			other.haplotypes.add(other_haplotype);
+		DataSet<Boolean> data = new BitDataSet(combined.size(), numSequences() + other.numSequences());
+		
+		for (GlobalSite site : combined) {
+			data.addSite(site);
+		}
+
+		for (Genotype gg : getGenotypes()) {
+			Boolean[][] x = new Boolean[combined.size()][2];
+			for (int t = 0 ; t < combined.size(); t++) {
+				x[t] = new Boolean[] { null, null };
+			}
 			
-			for (int sid = 0; sid < sites.length; sid++) {
-				Site site = sites[sid];
-				Site other_site = other_sites[sid];
-				if (this.isObserved(site, haplotype)) {
-					other.setObserved(other_site, other_haplotype, true);
-					other.set(other_site, other_haplotype,
-							get(site, haplotype));
-				} else {
-					other.setObserved(other_site, other_haplotype, false);
+			for (GlobalSite site : combined) {
+				Site ss = localize(site);
+				if (ss != null) {
+					x[data.localize(site).getIndex()] = get(ss, gg);
 				}
 			}
+			data.addGenotype(gg.getName(), x);
+		}
+		
+		for (Diplotype dd : getDiplotypes()) {
+			Boolean[][] x = new Boolean[combined.size()][2];
+			for (int t = 0 ; t < combined.size(); t++) {
+				x[t] = new Boolean[] { null, null };
+			}
+			for (GlobalSite site : combined) {
+				Site ss = localize(site);
+				if (ss != null) {
+					x[data.localize(site).getIndex()] = get(ss, dd);
+				}
+			}
+			data.addDiplotype(dd.getName(), x);
+		}
+		
+		for (Haplotype hh : getHaplotypes()) {
+			Boolean[] x = new Boolean[combined.size()];
+			for (int t = 0 ; t < combined.size(); t++) {
+				x[t] = null;
+			}
+			for (GlobalSite site : combined) {
+				Site ss = localize(site);
+				if (ss != null) {
+					x[data.localize(site).getIndex()] = get(ss, hh);
+				}
+			}
+			data.addHaplotype(hh.getName(), x);
+		}
+
+		
+		for (Genotype gg : other.getGenotypes()) {
+			Boolean[][] x = new Boolean[combined.size()][2];
+			for (int t = 0 ; t < combined.size(); t++) {
+				x[t] = new Boolean[] { null, null };
+			}
+			for (GlobalSite site : combined) {
+				Site ss = other.localize(site);
+				if (ss != null) {
+					x[data.localize(site).getIndex()] = other.get(ss, gg);
+				}
+			}
+			data.addGenotype(gg.getName(), x);
+		}
+		
+		for (Diplotype dd : other.getDiplotypes()) {
+			Boolean[][] x = new Boolean[combined.size()][2];
+			for (int t = 0 ; t < combined.size(); t++) {
+				x[t] = new Boolean[] { null, null };
+			}
+			for (GlobalSite site : combined) {
+				Site ss = other.localize(site);
+				if (ss != null) {
+					x[data.localize(site).getIndex()] = other.get(ss, dd);
+				}
+			}
+			data.addDiplotype(dd.getName(), x);
+		}
+		
+		for (Haplotype hh : other.getHaplotypes()) {
+			Boolean[] x = new Boolean[combined.size()];
+			for (int t = 0 ; t < combined.size(); t++) {
+				x[t] = null;
+			}
+			for (GlobalSite site : combined) {
+				Site ss = other.localize(site);
+				if (ss != null) {
+					x[data.localize(site).getIndex()] = other.get(ss, hh);
+					
+				}
+			}
+			data.addHaplotype(hh.getName(), x);
+		}
+		
+		return data;
+	}
+	
+	@Override
+	public DataSet<Boolean> filterSequences(List<Sequence> sequences) {
+		BitDataSet data = new BitDataSet(this.numSites(), sequences.size());
+		for (Site site : this.getSites()) {
+			data.addSite(site.globalize());
+		}
+		
+		for (Sequence hh : sequences) {
+			Boolean x[] = new Boolean[data.numSites()];
+			for (Site site : getSites()) {
+				Haplotype other = this.getHaplotype(hh.getName());
+				Site ss = data.localize(site.globalize());
+				x[ss.getIndex()] = get(site, other);
+			}
+			data.addHaplotype(hh.getName(), x);
+		}
+		return data;
+		
+	}
+
+	@Override
+	public DataSet<Boolean> filter(List<GlobalSite> filtered_sites) {
+		BitDataSet other = new BitDataSet(filtered_sites.size(), this.numSequences());
+		for (GlobalSite site : filtered_sites) {
+			other.addSite(site);
+		}
+
+		for (Genotype gg : getGenotypes()) {
+			Boolean x[][] = new Boolean[other.numSites()][2];
+			for (Site site : other.getSites()) {
+				Site ss = localize(site.globalize());
+				x[site.getIndex()] = get(ss, gg);
+			}
+			other.addGenotype(gg.getName(), x);
+		}
+		for (Diplotype dd : getDiplotypes()) {
+			Boolean x[][] = new Boolean[other.numSites()][2];
+			for (Site site : other.getSites()) {
+				Site ss = localize(site.globalize());
+				x[site.getIndex()] = get(ss, dd);
+			}
+			other.addDiplotype(dd.getName(), x);
+		}
+		
+		for (Haplotype hh : getHaplotypes()) {
+			Boolean x[] = new Boolean[other.numSites()];
+			for (Site site : other.getSites()) {
+				Site ss = localize(site.globalize());
+				x[site.getIndex()] = get(ss, hh);
+			}
+			other.addHaplotype(hh.getName(), x);
 		}
 		return other;
 	}

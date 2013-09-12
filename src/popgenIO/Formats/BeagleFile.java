@@ -71,8 +71,11 @@ public class BeagleFile {
 		Collections.sort(sequences);
 		Site[] sites = makeSiteMap(markermap);
 		DataSet<Boolean> gds = new BitDataSet(sites.length, 2 * snps.size());
-		gds.addSites(sites);
-
+		
+		for (Site site : sites) {
+			gds.addSite(site.globalize());
+		}
+		
 		for (String sequence_name : sequences) {
 			if (sequence_name.startsWith("H")) {
 				Map<String, Integer[]> sequence = snps.get(sequence_name);
@@ -318,13 +321,15 @@ public class BeagleFile {
 		writeSNPs(filename + ".bgl.gz", gds);
 	}
 
-	private static void writeMarkers(String mapfile, DataSet gds)
+	private static void writeMarkers(String mapfile, DataSet<Boolean> gds)
 			throws Exception {
+		
 		PrintStream out = new PrintStream(mapfile);
 		/*
 		 * format: <marker name> <position> <allele0> <allele1> ... <alleleN>
 		 * where N = 1 for SNPs
 		 */
+
 		for (Site site : gds.getSites()) {
 			out.print(site.getName());
 			out.print(" ");

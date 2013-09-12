@@ -22,15 +22,20 @@ import java.util.ArrayList;
 import java.util.Scanner;
 import java.util.zip.GZIPInputStream;
 
+import static java.lang.Math.round;
+
 import popgenIO.Core.DataSet;
 import popgenIO.Core.BitDataSet;
+import popgenIO.Core.GlobalSite;
 import popgenIO.Core.Haplotype;
 import popgenIO.Core.Site;
+
+import static libnp.util.Float.compareFloats;
 	    
 public class FlatFile {
 
 	// This should load ANY kind of .phase file (spaces, names, prefixes) or just a square matrix of 0/1/? as long as the names aren't like 010101 (can have #sites = 100)
-	public static DataSet read(Scanner fr) {
+	public static DataSet read(Scanner fr, Scanner fst, Scanner fsm) {
 		List<String> lines = new ArrayList();
 		int numsites = 0;
 		
@@ -67,9 +72,46 @@ public class FlatFile {
 		assert lines.size()>0;
 		assert numsites == lines.get(0).length();
 		int numSequences = lines.size();
-		
 		DataSet data = new BitDataSet(numsites, numSequences);
-		data.addSites(arange(numsites));
+		
+		if (fst != null) {
+			for (int t = 0; t < numsites; t++) {
+				String[] cols = fst.nextLine().trim().split("\\s");
+				double position = t;
+				String name = null;
+				char[] alleles = null;
+				
+				if (cols.length >= 1) {
+					position = Double.parseDouble(cols[0]);
+				}
+				
+				if (cols.length >= 2) {
+					name = cols[1];
+				} 
+
+				if (cols.length >= 3) {
+					assert cols[2].length() == 3;
+					alleles = new char[] { cols[2].charAt(0), cols[2].charAt(2) };
+				}
+				data.addSite(new Site(t, position, name, alleles).globalize());
+			}
+			
+		} else {
+			for (int t = 0; t < numsites; t++) {
+				data.addSite(new Site(t).globalize());
+			}
+		}
+		
+		List<String> names = new ArrayList();
+		if (fsm != null) {
+			for (int i = 0; i < numSequences; i++) {
+				String[] cols = fsm.nextLine().trim().split("\\s");
+				assert cols.length == 1;
+				names.add(cols[0]);
+			}
+			fsm.close();
+		}
+		
 		for (int i = 0; i < numSequences; i++) {
 			Boolean[] haplotype = new Boolean[numsites];
 			for (int t = 0; t < numsites; t++) {
@@ -88,13 +130,20 @@ public class FlatFile {
 					System.exit(-1);	
 				}
 			}
-			data.addHaplotype(haplotype);
+			if (!names.isEmpty()) {
+				data.addHaplotype(names.get(i), haplotype);
+			} else {
+				data.addHaplotype(haplotype);
+			}
 		}
 		return data;
 	}
 	
 	public static DataSet read(String filename) {
 		Scanner fr;
+		Scanner fst = null;
+		Scanner fsm = null;
+		
 		try {
 			fr = new Scanner(new BufferedReader(new InputStreamReader(
 					new GZIPInputStream(new FileInputStream(filename)))));
@@ -110,10 +159,45 @@ public class FlatFile {
 			}
 		}
 		
-		return read(fr);
+		if (new File(filename + ".sites").exists()) {
+			try {
+				fst = new Scanner(new BufferedReader(new InputStreamReader(
+						new GZIPInputStream(new FileInputStream(filename + ".sites")))));
+
+			} catch (IOException ioe) {
+				// try again without gzip...
+				try {
+					fst = new Scanner(new BufferedReader(new FileReader(filename + ".sites")));
+				} catch (FileNotFoundException e) {
+					e.printStackTrace();
+					System.exit(-1);
+					return null;
+				}
+			}
+		}
+		
+
+		if (new File(filename + ".samples").exists()) {
+			try {
+				fsm = new Scanner(new BufferedReader(new InputStreamReader(
+						new GZIPInputStream(new FileInputStream(filename + ".samples")))));
+
+			} catch (IOException ioe) {
+				// try again without gzip...
+				try {
+					fsm = new Scanner(new BufferedReader(new FileReader(filename + ".samples")));
+				} catch (FileNotFoundException e) {
+					e.printStackTrace();
+					System.exit(-1);
+					return null;
+				}
+			}
+		}
+		
+		return read(fr, fst, fsm);
 	}
 
-	public static void write(DataSet<Boolean> data, BufferedWriter output) {
+	public static void write(DataSet<Boolean> data, BufferedWriter output, BufferedWriter bst, BufferedWriter bsm) {
 		int numsequences = data.numSequences();
 		int numsites = data.numSites();
 		try {
@@ -135,11 +219,45 @@ public class FlatFile {
 			e.printStackTrace();
 			System.exit(-1);
 		}
+		
+		if (bst != null) {
+			try {
+				for (Site site : data.getSites()) {
+					Object position = (Double)(site.getPosition());
+					if (compareFloats((Double)position, round((Double)position), 1e-10) == 0) {
+						position = (Integer)((int)((double)position));
+					}
+					String name = site.getName();
+					String alleles = site.getAlleles()[0] + "/" + site.getAlleles()[1];
+					bst.write(position + " " + name + " " + alleles + "\n");
+				}
+				bst.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+				System.exit(-1);
+			}
+		}
+		
+		if (bsm != null) {
+			try {
+				for (Haplotype haplotype : data.getHaplotypes()) {
+					bsm.write(haplotype.getName() + "\n");
+				}
+				bsm.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+				System.exit(-1);
+			}
+		}
 	}
 
 	public static void write(DataSet<Boolean> data, String filename) {
 		try {
-			write(data, new BufferedWriter(new FileWriter(new File(filename))));
+			write(data,
+					new BufferedWriter(new FileWriter(new File(filename))),
+					new BufferedWriter(new FileWriter(new File(filename + ".sites"))),
+					new BufferedWriter(new FileWriter(new File(filename + ".samples"))));
+			
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 			System.exit(-1);

@@ -6,7 +6,7 @@ package popgenIO.Core;
 
 import java.util.*;
 
-public class RealDataSet implements DataSet<Double> {
+public abstract class RealDataSet implements DataSet<Double> {
 	BitSet observed = null;
 	double[][] allele = null;
 	int numsequences = 0;
@@ -64,7 +64,9 @@ public class RealDataSet implements DataSet<Double> {
 	
 	@Override
 	public RealDataSet clone() {
-		return new RealDataSet(this);
+		assert false : "Not implemented";
+		return null;
+		// return new RealDataSet(this);
 	}
 	
 	final private boolean isObserved(int sid, int qid) {
@@ -96,26 +98,6 @@ public class RealDataSet implements DataSet<Double> {
 
 	final private void setObserved(int sid, int qid, boolean aa) {
 		observed.set(index(sid, qid), aa);
-	}
-	
-	@Override
-	public void addSites(Site[] sites) {
-		assert sites == null;
-		this.sites = sites;
-	}
-
-	@Override
-	public void addSites(double[] positions) {
-		for (int sid = 0; sid < numsites; sid++) {
-			sites[sid] = new Site(sid, positions[sid]);
-		}
-	}
-
-	@Override
-	public void addSites(double[] positions, String[] names) {
-		for (int sid = 0; sid < numsites; sid++) {
-			sites[sid] = new Site(sid, positions[sid], names[sid]);
-		}
 	}
 	
 	@Override
@@ -206,8 +188,10 @@ public class RealDataSet implements DataSet<Double> {
 	}
 
 	@Override
-	public Site[] getSites() {
-		return sites;
+	public List<Site> getSites() {
+		assert false : "Not implemented.";
+		return null;
+		//return sites;
 	}
 
 
@@ -324,62 +308,5 @@ public class RealDataSet implements DataSet<Double> {
 	@Override
 	public GenotypeValue getGenotypeValue(Site ss, Genotype gg) {
 		return null;
-	}
-
-	@Override
-	public DataSet<Double> filter(Site[] sites) {
-		RealDataSet other = new RealDataSet(sites.length, this.numSequences());
-
-		other.addSites(Site.copyArray(sites));
-		Site[] other_sites = other.getSites();
-		for (Genotype genotype : getGenotypes()) {
-			Genotype other_genotype = genotype.clone();
-			other.genotypes.add(other_genotype);
-			
-			for (int sid = 0; sid < sites.length; sid++) {
-				Site site = sites[sid];
-				Site other_site = other_sites[sid];
-				if (this.isObserved(site, genotype)) {
-					other.setObserved(other_site, other_genotype, true);
-					other.set(other_site, other_genotype,
-							get(site, genotype));
-				} else {
-					other.setObserved(other_site, other_genotype, false);
-				}
-			}
-		}
-		for (Diplotype diplotype : getDiplotypes()) {
-			Diplotype other_diplotype = diplotype.clone();
-			other.diplotypes.add(other_diplotype);
-			
-			for (int sid = 0; sid < sites.length; sid++) {
-				Site site = sites[sid];
-				Site other_site = other_sites[sid];
-				if (this.isObserved(site, diplotype)) {
-					other.setObserved(other_site, other_diplotype, true);
-					other.set(other_site, other_diplotype,
-							get(site, diplotype));
-				} else {
-					other.setObserved(other_site, other_diplotype, false);
-				}
-			}
-		}
-		for (Haplotype haplotype : getHaplotypes()) {
-			Haplotype other_haplotype = haplotype.clone();
-			other.haplotypes.add(other_haplotype);
-			
-			for (int sid = 0; sid < sites.length; sid++) {
-				Site site = sites[sid];
-				Site other_site = other_sites[sid];
-				if (this.isObserved(site, haplotype)) {
-					other.setObserved(other_site, other_haplotype, true);
-					other.set(other_site, other_haplotype,
-							get(site, haplotype));
-				} else {
-					other.setObserved(other_site, other_haplotype, false);
-				}
-			}
-		}
-		return other;
 	}
 }
