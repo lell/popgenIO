@@ -6,9 +6,11 @@ package popgenIO.Core;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.io.Serializable;
+
 import static libnp.util.Float.compareFloats;
 
-public abstract class AbstractSite implements Comparable {
+public abstract class AbstractSite implements Comparable, Serializable {
 	private double position;
 	private String name;
 	private char[] alleles;

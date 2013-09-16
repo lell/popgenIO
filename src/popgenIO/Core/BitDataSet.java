@@ -13,7 +13,9 @@ import java.util.ArrayList;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-public class BitDataSet implements DataSet<Boolean> {
+import java.io.Serializable;
+
+public class BitDataSet implements DataSet<Boolean>, Serializable {
 	BitSet observed = null;
 	BitSet allele = null;
 	int numsequences = 0;

@@ -4,7 +4,9 @@
 
 package popgenIO.Core;
 
-public class Diplotype extends SequenceImpl {
+import java.io.Serializable;
+
+public class Diplotype extends SequenceImpl implements Serializable {
 	Diplotype(String name, int index) {
 		super(name, index);
 	}

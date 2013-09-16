@@ -6,9 +6,12 @@ package popgenIO.Core;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.io.Serializable;
+
 import static libnp.util.Float.compareFloats;
 
-public class GlobalSite extends AbstractSite implements Comparable {
+
+public class GlobalSite extends AbstractSite implements Comparable, Serializable {
 	public GlobalSite(double position, String name, char[] alleles) {
 		assert position >= 0;
 		assert name != null;

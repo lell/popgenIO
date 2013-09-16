@@ -10,7 +10,9 @@ import popgenIO.Core.Genotype;
 import popgenIO.Core.Haplotype;
 import popgenIO.Core.Site;
 
-public interface Manager<X> {
+import java.io.Serializable;
+
+public interface Manager<X> extends Serializable {
 
 	public DataSet<X> getAllData();
 

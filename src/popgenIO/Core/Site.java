@@ -7,11 +7,13 @@ package popgenIO.Core;
 import java.util.HashMap;
 import java.util.Map;
 
+import java.io.Serializable;
+
 import static java.lang.Math.round;
 
 import static libnp.util.Float.compareFloats;
 
-public class Site extends AbstractSite {
+public class Site extends AbstractSite implements Serializable {
 	private int index;
 
 	public Site(int index) {

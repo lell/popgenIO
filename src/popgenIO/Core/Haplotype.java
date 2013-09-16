@@ -4,7 +4,9 @@
 
 package popgenIO.Core;
 
-public class Haplotype extends SequenceImpl {
+import java.io.Serializable;
+
+public class Haplotype extends SequenceImpl implements Serializable {
 	Haplotype(String name, int index) {
 		super(name, index);
 	}

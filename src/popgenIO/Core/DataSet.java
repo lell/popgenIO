@@ -7,8 +7,9 @@ package popgenIO.Core;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Collection;
+import java.io.Serializable;
 
-public interface DataSet<X> {
+public interface DataSet<X> extends Serializable {
 	
 	public abstract DataSet<X> clone();
 	/**

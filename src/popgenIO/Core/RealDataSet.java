@@ -5,8 +5,9 @@
 package popgenIO.Core;
 
 import java.util.*;
+import java.io.Serializable;
 
-public abstract class RealDataSet implements DataSet<Double> {
+public abstract class RealDataSet implements DataSet<Double>, Serializable {
 	BitSet observed = null;
 	double[][] allele = null;
 	int numsequences = 0;

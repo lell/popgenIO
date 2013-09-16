@@ -10,7 +10,9 @@ import popgenIO.Core.Genotype;
 import popgenIO.Core.Haplotype;
 import popgenIO.Core.Site;
 
-public class TrainingManager extends AbstractManager {
+import java.io.Serializable;
+
+public class TrainingManager extends AbstractManager implements Serializable {
 	DataSet<Boolean> test;
 
 	public TrainingManager(DataSet<Boolean> train) {

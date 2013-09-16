@@ -4,7 +4,9 @@
 
 package popgenIO.Core;
 
-public class Genotype extends SequenceImpl {
+import java.io.Serializable;
+
+public class Genotype extends SequenceImpl implements Serializable {
 	Genotype(String name, int index) {
 		super(name, index);
 	}
