@@ -14,8 +14,8 @@
       <pathelement location="${libnp.location}/bin"/>
       <pathelement location="${popgenIO.location}/bin"/>
       <pathelement location="${bnpphase.location}/bin"/>
-      <pathelement location="../../lib/commons-cli-1.2.jar"/>
-      <pathelement location="../../lib/commons-math3-3.1.1.jar"/>
+      <pathelement location="${env.HOME}/projects/lib/commons-cli-1.2.jar"/>
+      <pathelement location="${env.HOME}/projects/lib/commons-math3-3.1.1.jar"/>
       <pathelement location="${scala-library.jar}"/>
     </path>
 
