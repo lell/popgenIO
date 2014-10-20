@@ -35,7 +35,7 @@ public class BitDataSet implements DataSet<Boolean>, Serializable {
 		allele = new BitSet(numsequences * numsites);
 		
 		sites = new TreeMap();
-		genotypes = new LinkedHashMap();		
+		genotypes = new LinkedHashMap();	
 		diplotypes = new LinkedHashMap();		
 		haplotypes = new LinkedHashMap();
 	}
@@ -151,7 +151,7 @@ public class BitDataSet implements DataSet<Boolean>, Serializable {
 		}
 		return data;
 	}
-	
+
 	final private boolean isObserved(int sid, int qid) {
 		return observed.get(index(sid, qid));
 	}
@@ -191,10 +191,10 @@ public class BitDataSet implements DataSet<Boolean>, Serializable {
 		}
 		Genotype genotype = new Genotype(name, index);
 		for (int t = 0; t < numsites; t++) {
-			if (data[t][0] != null) {
-				assert data[t][1] != null;
-				setAllele(t, index, data[t][0]);
-				setAllele(t, index+1, data[t][1]);
+			if (data[0][t] != null) {
+				assert data[1][t] != null;
+				setAllele(t, index, data[0][t]);
+				setAllele(t, index+1, data[1][t]);
 				
 				setObserved(t, index, true);
 				setObserved(t, index+1, true);
@@ -562,5 +562,10 @@ public class BitDataSet implements DataSet<Boolean>, Serializable {
 			other.addHaplotype(hh.getName(), x);
 		}
 		return other;
+	}
+
+	@Override
+	public boolean isHeterozygous(Site ss, Genotype gg) {
+		return get(ss,gg)[0]!=get(ss,gg)[1];
 	}
 }
