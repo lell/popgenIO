@@ -50,6 +50,7 @@ public interface DataSet<X> extends Serializable {
 	public abstract boolean isObserved(Site ss, Genotype gg);
 	public abstract boolean isObserved(Site ss, Haplotype hh);
 	public abstract boolean isObserved(Site ss, Diplotype dd);
+	public abstract boolean isHeterozygous(Site ss, Genotype gg);
 
 	public abstract void setObserved(Site ss, Genotype gg, boolean obs);
 	public abstract void setObserved(Site ss, Haplotype hh, boolean obs);
