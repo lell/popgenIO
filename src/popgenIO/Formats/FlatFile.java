@@ -16,20 +16,17 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
-
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Scanner;
 import java.util.zip.GZIPInputStream;
 
 import static java.lang.Math.round;
-
 import popgenIO.Core.DataSet;
 import popgenIO.Core.BitDataSet;
-import popgenIO.Core.GlobalSite;
+import popgenIO.Core.Genotype;
 import popgenIO.Core.Haplotype;
 import popgenIO.Core.Site;
-
 import static libnp.util.Float.compareFloats;
 	    
 public class FlatFile {
@@ -49,18 +46,19 @@ public class FlatFile {
 			// If we save a real matrix from matlab with '-ascii', we get 1.000 and 0.000 for 1 and 0
 			line = line.replaceAll("1\\.[0]+", "1");
 			line = line.replaceAll("0\\.[0]+", "0");
+			line = line.replaceAll("2\\.[2]+", "2");
 			line = line.replaceAll("\\s+", "");
 
-			boolean hap = true;
+			boolean valid_seq = true;
 			for (int t = 0; t < line.length(); t++) {
 				char c = line.charAt(t);
-				if (! (c == '0' || c == '1' || c == '?')) {
-					hap = false;
+				if (! (c == '0' || c == '1' || c == '?' || c == '2')) {
+					valid_seq = false;
 					break;
 				}
 			}
 			
-			if (hap) {
+			if (valid_seq) {
 				if (line.length() != numsites) {
 					lines.clear();
 				}
@@ -114,26 +112,43 @@ public class FlatFile {
 		
 		for (int i = 0; i < numSequences; i++) {
 			Boolean[] haplotype = new Boolean[numsites];
+			Boolean[][] genotype = new Boolean[2][numsites];
+			boolean isGenotype = false;
 			for (int t = 0; t < numsites; t++) {
 				switch (lines.get(i).charAt(t)) {
 				case '0':
 					haplotype[t] = false;
+					genotype[0][t] = false;
+					genotype[1][t] = false;
 					break;
 				case '1':
 					haplotype[t] = true;
+					genotype[0][t] = true;
+					genotype[1][t] = true;
 					break;
 				case '?':
 					haplotype[t] = null;
+					genotype[0][t] = null;
+					genotype[1][t] = null;
+					break;
+				case '2':
+					isGenotype = true;
+					genotype[0][t] = true;
+					genotype[1][t] = false;
 					break;
 				default:
-					System.err.println("Unknown character in file: " + new Integer(lines.get(i).charAt(t)));
+					System.err.println("Unknown character in file: " + lines.get(i).charAt(t) + " " + new Integer(lines.get(i).charAt(t)));
 					System.exit(-1);	
 				}
 			}
 			if (!names.isEmpty()) {
-				data.addHaplotype(names.get(i), haplotype);
+				if(isGenotype)
+					data.addGenotype(names.get(i), genotype);
+				else data.addHaplotype(names.get(i), haplotype);
 			} else {
-				data.addHaplotype(haplotype);
+				if(isGenotype)
+					data.addGenotype(genotype);
+				else data.addHaplotype(haplotype);
 			}
 		}
 		return data;
@@ -169,6 +184,7 @@ public class FlatFile {
 				try {
 					fst = new Scanner(new BufferedReader(new FileReader(filename + ".sites")));
 				} catch (FileNotFoundException e) {
+					fr.close();
 					e.printStackTrace();
 					System.exit(-1);
 					return null;
@@ -187,6 +203,7 @@ public class FlatFile {
 				try {
 					fsm = new Scanner(new BufferedReader(new FileReader(filename + ".samples")));
 				} catch (FileNotFoundException e) {
+					fr.close();
 					e.printStackTrace();
 					System.exit(-1);
 					return null;
@@ -212,6 +229,21 @@ public class FlatFile {
 					}
 				}
 				output.write("\n");
+			}
+			for (Genotype genotype : data.getGenotypes()) {
+				for (Site site : data.getSites()) {
+					if (!data.isObserved(site, genotype)) {
+						output.write("?");
+					} else if (data.get(site, genotype)[0]==data.get(site, genotype)[1]) {
+						if(data.get(site, genotype)[0]) {
+							output.write("1");
+						} else {
+							output.write("0");
+						}
+					} else {
+						output.write("2");
+					}
+				}
 			}
 			output.close();
 		}
@@ -242,6 +274,9 @@ public class FlatFile {
 			try {
 				for (Haplotype haplotype : data.getHaplotypes()) {
 					bsm.write(haplotype.getName() + "\n");
+				}
+				for (Genotype genotype : data.getGenotypes()) {
+					bsm.write(genotype.getName() + "\n");
 				}
 				bsm.close();
 			} catch (IOException e) {

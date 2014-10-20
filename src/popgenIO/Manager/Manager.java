@@ -21,6 +21,8 @@ public interface Manager<X> extends Serializable {
 	public DataSet<X> getTestSet();
 
 	public DataSet<X> getPredictedSet();
+	
+	public DataSet<X> getPhasedSet();
 
 	public double getChanceAccuracy();
 
@@ -38,11 +40,17 @@ public interface Manager<X> extends Serializable {
 
 	public X getPrediction(Site ss, Haplotype hh);
 
+	public X[] getPredictedHaplotype(Site ss, Genotype gg);
+	
+	public double[] getPhasedProbabilities(Site ss, Genotype gg);
+
 	public double[] getProbabilities(Site ss, Genotype gg);
 
 	double[] getProbabilities(Site ss, Diplotype dd);
 
-	public double[] getProbabilities(Site ss, Haplotype hh);
+	public double[] getImputeProbabilities(Site ss, Haplotype hh);
+	
+	public double getImputeVariance(Site ss, Haplotype hh);
 
 	public boolean isPredictable(Site ss, Genotype gg);
 
@@ -56,6 +64,10 @@ public interface Manager<X> extends Serializable {
 
 	public boolean isPredictable(Haplotype hh);
 
+	public boolean isHeterozygous(Site ss, Genotype gg);
+	
+	public boolean isPhaseable(Site ss, Genotype gg);
+
 	public int numPredictableGenotypes();
 
 	public int numPredictableHaplotypes();
@@ -65,6 +77,8 @@ public interface Manager<X> extends Serializable {
 
 	public void collect(Site ss, Haplotype hh, double prob0, double prob1);
 
+	public void collect(Site ss, Diplotype dd, double d00, double d01, double d10, double d11);
+	
 	public double[] getAllelicR2(int[] numSamples);
 
 	public void getConcordance(int[] levels, int[] correct, int[] counts);

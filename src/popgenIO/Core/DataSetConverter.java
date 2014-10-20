@@ -32,12 +32,33 @@ public class DataSetConverter implements Collectable {
 			}
 			hid++;
 		}
+		for (Diplotype dd : data.getDiplotypes()) {
+			int sid = 0;
+			for (Site ss : data.getSites()) {
+				Boolean[] val = data.get(ss, dd);
+				if (val[0] == null) {
+					matrix[hid][sid] = -1;
+				} else if (val[0]) {
+					matrix[hid][sid] = 1;
+				} else {
+					matrix[hid][sid] = 0;
+				}
+				if (val[1] == null) {
+					matrix[hid+1][sid] = -1;
+				} else if (val[1]) {
+					matrix[hid+1][sid] = 1;
+				} else {
+					matrix[hid+1][sid] = 0;
+				}
+				sid++;
+			}
+			hid+=2;
+		}
 		return matrix;
 	}
 	@Override
 	public Object get(String property_name) {
 		return convert((DataSet)cc.get(property_name));
-		
 	}
 
 	@Override

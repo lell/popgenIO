@@ -18,6 +18,8 @@ public class TrainingManager extends AbstractManager implements Serializable {
 	public TrainingManager(DataSet<Boolean> train) {
 		super(train);
 		wantUnobserved();
+		/* TODO: Add phasing results into collector framework */
+		//wantUnphased();
 	}
 
 	public void wantUnobserved() {
@@ -42,6 +44,18 @@ public class TrainingManager extends AbstractManager implements Serializable {
 				if (!trainset.isObserved(ss, hh)) {
 					wantPrediction(ss, hh);
 					assert isPredictable(ss, hh);
+				}
+			}
+		}
+	}
+	
+	public void wantUnphased() {
+		DataSet<Boolean> trainset = this.getTrainingSet();
+		for (Site ss : trainset.getSites()) {
+			for (Genotype gg : trainset.getGenotypes()) {
+				if (trainset.isHeterozygous(ss, gg)) {
+					wantPhase(ss, gg);
+					assert isPhaseable(ss, gg);
 				}
 			}
 		}
