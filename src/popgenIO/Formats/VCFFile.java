@@ -13,6 +13,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -26,7 +27,7 @@ import popgenIO.Core.Site;
 import popgenIO.Formats.BeagleFile.ParseError;
 
 public class VCFFile {
-	
+
 	public static String getVCFFile(String filename) throws FileNotFoundException {
 		if (new File(removeExtention(filename) + ".vcf").exists()) {
 			return removeExtention(filename) + ".vcf";
@@ -42,7 +43,11 @@ public class VCFFile {
 			throw new FileNotFoundException(filename);
 		}
 	}
-	
+
+	public static DataSet read(String filename, String contig) throws Exception {
+		return read(filename,contig,-1,-1);
+	}
+
 	/**
 	 * We force the specification of a contig name because we want to enforce processing a single chromosome at a time.
 	 * This is good practice in general for parallelizing runs, but also, it's more work to process multiple chromosomes
@@ -52,10 +57,11 @@ public class VCFFile {
 	 * @return
 	 * @throws Exception
 	 */
-	public static DataSet read(String filename, String contig) throws Exception {
+	public static DataSet read(String filename, String contig, int random_number_genotypes, int random_number_haplotypes) throws Exception {
 		if(!(new File(filename).exists()))
 			filename = getVCFFile(filename);
 		Scanner scan = tryOpen(filename);
+
 		int minPosition = 0, maxPosition = Integer.MAX_VALUE, num_individuals = 0;
 		// Assumes VCF is sorted (per specification)
 		BufferedReader reader = new BufferedReader(new FileReader(filename));
@@ -72,22 +78,30 @@ public class VCFFile {
 				if(line_counter==0)
 					minPosition = new Integer(pos);
 				line_counter++;
-				
+
 			}
+		}
+		List<Integer> indices = new ArrayList<Integer>();
+		for (int i = 0; i < num_individuals; i++) {
+			indices.add(i);
+		}
+		if(random_number_genotypes!=-1 && random_number_haplotypes!=-1)  {
+			Collections.shuffle(indices);
 		}
 		maxPosition = new Integer(pos);
 		reader.close();
-		
+
 		Site[] sites = new Site[line_counter];
 		int genotype_index = 0, site_cnt = 0;
 		List<String> sequence_ids = new ArrayList<String>();
 		String chromosome = null;
 		DataSet<Boolean> gds = null;
 		boolean[] isGenotype = new boolean[num_individuals];
+
 		// indexed by [number of genotypes/diplotypes][which sequence (doesn't matter for genotypes)][number of sites]
 		Boolean[][][] genotypes_and_diplotypes = new Boolean[num_individuals][2][line_counter];
 		line_counter=0;
-		
+
 		while (scan.hasNext()) {
 			String type = scan.next();
 			if (type.startsWith("##")) {
@@ -120,9 +134,10 @@ public class VCFFile {
 				if(chromosome==null) 
 					chromosome = type;
 				else if(!chromosome.equals(type)) {
+					line_scanner.close();
 					throw new ParseError("Found more than one contig in the VCF file. Please filter all contigs except one.");
 				}
-				
+
 				if(gds == null) {
 					gds = new BitDataSet(sites.length, 2 * sequence_ids.size());
 				}
@@ -148,6 +163,7 @@ public class VCFFile {
 							// unphased
 							isGenotype[number_columns-9]=true;
 						} else {
+							line_scanner.close();
 							throw new ParseError("Malformed genotype " + genotype);
 						}
 						String[] alleles = genotype.split("\\||/");
@@ -157,24 +173,74 @@ public class VCFFile {
 					number_columns++;
 				}
 				line_counter++;
+				line_scanner.close();
 			}
 		}
-		for (int i = 0; i <  sequence_ids.size(); i++) {
-			if(isGenotype[i]) { 
-				gds.addGenotype(sequence_ids.get(i), genotypes_and_diplotypes[i]);
-				//gds.addDiplotype(sequence_ids.get(i), genotypes_and_diplotypes[i]); // for the phased diplotypes
-				//gds.addHaplotype(sequence_ids.get(i) + "A", genotypes_and_diplotypes[i][0]); // diplotypes aren't really supported...
-				//gds.addHaplotype(sequence_ids.get(i) + "B", genotypes_and_diplotypes[i][1]);
-			} else {
-				// Probably should be diplotype here, code largely supports haplotypes 
-				// only for inference (trajectories, etc...) should probably change in future
-				gds.addHaplotype(sequence_ids.get(i) + "A", genotypes_and_diplotypes[i][0]);
-				gds.addHaplotype(sequence_ids.get(i) + "B", genotypes_and_diplotypes[i][1]);
+		System.err.println("True haplotypes");
+		if(random_number_genotypes>=0 && random_number_haplotypes>=0) {
+			for (int i = 0; i < num_individuals; i++) {
+				if(isGenotype[indices.get(i)]) { 
+					if(random_number_genotypes>0) {
+						gds.addGenotype(sequence_ids.get(indices.get(i)), genotypes_and_diplotypes[indices.get(i)]);
+						random_number_genotypes--;
+					}
+				} else {
+					// Probably should be diplotype here, code largely supports haplotypes 
+					// only for inference (trajectories, etc...) should probably change in future
+					if(random_number_haplotypes==0 && random_number_genotypes>0) {
+						printHap(genotypes_and_diplotypes[indices.get(i)][0],System.err);
+						printHap(genotypes_and_diplotypes[indices.get(i)][1],System.err);
+						gds.addGenotype(sequence_ids.get(indices.get(i)), genotypes_and_diplotypes[indices.get(i)]);
+						random_number_genotypes--;
+					}
+					if(random_number_haplotypes>0) {
+						gds.addHaplotype(sequence_ids.get(indices.get(i)) + "A", genotypes_and_diplotypes[indices.get(i)][0]);
+						random_number_haplotypes--;
+					}
+					if(random_number_haplotypes>0) {
+						gds.addHaplotype(sequence_ids.get(indices.get(i)) + "B", genotypes_and_diplotypes[indices.get(i)][1]);
+						random_number_haplotypes--;
+					}
+				}
+			}
+			if(random_number_genotypes>0) {
+				System.err.println("WARNING: Didn't find enough genotypes in the data. Requested " + 
+						(random_number_genotypes+gds.getGenotypes().size()) + 
+						" but only found " + gds.getGenotypes().size()+".");
+			}
+			if(random_number_haplotypes>0) {
+				System.err.println("WARNING: Didn't find enough haplotypes in the data. Requested " + 
+						(random_number_haplotypes+gds.getHaplotypes().size()) + 
+						" but only found " + gds.getHaplotypes().size()+".");
+			}
+		} else {
+			for (int i = 0; i < num_individuals; i++) {
+				if(isGenotype[indices.get(i)]) { 
+					gds.addGenotype(sequence_ids.get(indices.get(i)), genotypes_and_diplotypes[indices.get(i)]);
+				} else {
+					// Probably should be diplotype here, code largely supports haplotypes 
+					// only for inference (trajectories, etc...) should probably change in future
+					gds.addHaplotype(sequence_ids.get(indices.get(i)) + "A", genotypes_and_diplotypes[indices.get(i)][0]);
+					gds.addHaplotype(sequence_ids.get(indices.get(i)) + "B", genotypes_and_diplotypes[indices.get(i)][1]);
+				}
 			}
 		}
 		return gds;
 	}
-	
+
+	/**
+	 * @param booleans
+	 * @param err
+	 */
+	private static void printHap(Boolean[] hap, PrintStream err) {
+		for (Boolean b : hap) {
+			if(b)
+				err.print("1");
+			else err.print("0");
+		}
+		System.err.println();
+	}
+
 	private static Boolean getGenotypeVal(char allele) throws ParseError {
 		if(allele == '0') 
 			return false;
@@ -199,8 +265,8 @@ public class VCFFile {
 			// try again without gzip...
 			scan = new Scanner(new BufferedReader(new FileReader(filename)));
 		}
-		
-		
+
+
 		return scan;
 	}
 }
