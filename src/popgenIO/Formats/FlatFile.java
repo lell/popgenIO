@@ -77,7 +77,7 @@ public class FlatFile {
 				String[] cols = fst.nextLine().trim().split("\\s");
 				double position = t;
 				String name = null;
-				char[] alleles = null;
+				int[] alleles = null;
 				
 				if (cols.length >= 1) {
 					position = Double.parseDouble(cols[0]);
@@ -89,7 +89,7 @@ public class FlatFile {
 
 				if (cols.length >= 3) {
 					assert cols[2].length() == 3;
-					alleles = new char[] { cols[2].charAt(0), cols[2].charAt(2) };
+					alleles = new int[] { Character.getNumericValue(cols[2].charAt(0)), Character.getNumericValue(cols[2].charAt(2)) };
 				}
 				data.addSite(new Site(t, position, name, alleles).globalize());
 			}

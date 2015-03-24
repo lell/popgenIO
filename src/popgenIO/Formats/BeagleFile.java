@@ -138,8 +138,7 @@ public class BeagleFile {
 			Integer[] values = markermap.get(marker);
 			// normalize position into [0,1]
 			double position = (values[0] - min_pos) / (max_pos - min_pos);
-			char[] allele_chars = { (char) (int) values[1],
-					(char) (int) values[2] };
+			int[] allele_chars = { values[1].intValue(),values[2].intValue() };
 
 			sites.add(new Site(index, position, marker, allele_chars));
 			index++;

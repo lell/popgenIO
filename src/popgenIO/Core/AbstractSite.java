@@ -13,7 +13,7 @@ import static libnp.util.Float.compareFloats;
 public abstract class AbstractSite implements Comparable, Serializable {
 	private double position;
 	private String name;
-	private char[] alleles;
+	private int[] alleles;
 
 	public double getPosition() {
 		return position;
@@ -23,7 +23,7 @@ public abstract class AbstractSite implements Comparable, Serializable {
 		return name;
 	}
 
-	public char[] getAlleles() {
+	public int[] getAlleles() {
 		return alleles;
 	}
 
@@ -35,7 +35,7 @@ public abstract class AbstractSite implements Comparable, Serializable {
 		this.name = name;
 	}
 
-	public void setAlleles(char[] alleles){
+	public void setAlleles(int[] alleles){
 		this.alleles = alleles;
 	}
 	

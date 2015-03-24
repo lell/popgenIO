@@ -148,7 +148,7 @@ public class VCFFile {
 				if(varname.equals("."))
 					varname = "VAR_" + chromosome + "_" + varpos;
 				sites[site_cnt] = new Site(site_cnt, normalize(varpos,(double)minPosition,(double)maxPosition), 
-						varname, new char[]{'0','1'});
+						varname, new int[]{0,1});
 				number_columns+=2;
 				gds.addSite(sites[site_cnt++].globalize());
 
