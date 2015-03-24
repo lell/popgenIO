@@ -25,6 +25,8 @@ abstract class AbstractManager implements Manager<Boolean>, Cloneable, Serializa
 	
 	private HashMap<Haplotype, HashMap<Site, Double>> probhaplotype1,
 			probhaplotype0;
+	
+	private HashMap<Haplotype, HashMap<Site,List<Double>>> probHaplotype0Estimates;
 
 	public int predictionMethod = 1;
 
@@ -107,6 +109,14 @@ abstract class AbstractManager implements Manager<Boolean>, Cloneable, Serializa
 						(HashMap<Site, Double>) this.probhaplotype1.get(hh)
 								.clone());
 			}
+			
+			other.probHaplotype0Estimates = (HashMap<Haplotype, HashMap<Site, List<Double>>>) 
+					this.probHaplotype0Estimates.clone();
+			for (Haplotype hh : other.probHaplotype0Estimates.keySet()) {
+				other.probHaplotype0Estimates.put(hh,
+						(HashMap<Site, List<Double>>) this.probHaplotype0Estimates.get(hh)
+								.clone());
+			}
 			return other;
 		} catch (CloneNotSupportedException e) {
 			throw new Error("clone is not supported?!");
@@ -133,6 +143,7 @@ abstract class AbstractManager implements Manager<Boolean>, Cloneable, Serializa
 		
 		probhaplotype1 = new HashMap<Haplotype, HashMap<Site, Double>>();
 		probhaplotype0 = new HashMap<Haplotype, HashMap<Site, Double>>();
+		probHaplotype0Estimates = new HashMap<Haplotype, HashMap<Site,List<Double>>>();
 		for (Haplotype hh : allData.getHaplotypes()) {
 			clearPredictions(hh);
 		}
@@ -147,6 +158,7 @@ abstract class AbstractManager implements Manager<Boolean>, Cloneable, Serializa
 	protected void clearPredictions(Haplotype hh) {
 		probhaplotype0.put(hh, new HashMap<Site, Double>());
 		probhaplotype1.put(hh, new HashMap<Site, Double>());
+		probHaplotype0Estimates.put(hh, new HashMap<Site,List<Double>>());
 	}
 	
 	protected void clearPredictions(Diplotype dd) {
@@ -171,6 +183,7 @@ abstract class AbstractManager implements Manager<Boolean>, Cloneable, Serializa
 			if (pred.containsKey(ss)) {
 				pred.remove(ss);
 				probhaplotype1.get(hh).remove(ss);
+				probHaplotype0Estimates.get(hh).remove(ss);
 			}
 		}
 	}
@@ -204,6 +217,7 @@ abstract class AbstractManager implements Manager<Boolean>, Cloneable, Serializa
 		}
 		probhaplotype0.get(hh).put(ss, 0.0);
 		probhaplotype1.get(hh).put(ss, 0.0);
+		probHaplotype0Estimates.get(hh).put(ss, new ArrayList<Double>());
 	}
 	
 	/* TODO: Add phasing results into collector framework */
@@ -328,6 +342,7 @@ abstract class AbstractManager implements Manager<Boolean>, Cloneable, Serializa
 		map = probhaplotype0.get(hh);
 		assert map != null;
 		map.put(ss, map.get(ss) + prob0);
+		probHaplotype0Estimates.get(hh).get(ss).add(prob0);
 		map = probhaplotype1.get(hh);
 		map.put(ss, map.get(ss) + prob1);
 	}
@@ -463,8 +478,13 @@ abstract class AbstractManager implements Manager<Boolean>, Cloneable, Serializa
 	
 	@Override
 	public double getImputeVariance(Site ss, Haplotype hh) {
-		double[] result = getImputeProbabilities(ss,hh);
-		return result[0]*result[1];
+		double[] probs = getImputeProbabilities(ss,hh);
+		List<Double> predictions = probHaplotype0Estimates.get(ss).get(hh);
+		double sum = 0d;
+		for (Double prediction : predictions) {
+			sum+=(prediction.doubleValue()-probs[0])*(prediction.doubleValue()-probs[0]);
+		}
+		return sum/(double)predictions.size();
 	}
 
 	@Override

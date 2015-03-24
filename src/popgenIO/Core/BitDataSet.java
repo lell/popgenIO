@@ -24,6 +24,7 @@ public class BitDataSet implements DataSet<Boolean>, Serializable {
 	int site_index = 0;
 	
 	SortedMap<String, Site> sites;
+	List<Site> sites_list = new ArrayList<Site>();
 	LinkedHashMap<String, Genotype> genotypes;
 	LinkedHashMap<String, Diplotype> diplotypes;
 	LinkedHashMap<String, Haplotype> haplotypes;
@@ -98,9 +99,7 @@ public class BitDataSet implements DataSet<Boolean>, Serializable {
 	
 	@Override
 	public List<Site> getSites() {
-		List<Site> sss = new ArrayList();
-		sss.addAll(sites.values());
-		return sss;
+		return sites_list;
 	}
 	
 	@Override
@@ -128,6 +127,7 @@ public class BitDataSet implements DataSet<Boolean>, Serializable {
 		assert site != null;
 		Site localized = new Site(site_index++, site);
 		sites.put(site.getName(), localized);
+		sites_list.add(localized);
 		return localized;
 	}
 	
