@@ -12,7 +12,7 @@ public class DataSetConverter implements Collectable {
 		this.cc = cc;
 	}
 	
-	private Integer[][] convert(DataSet<Boolean> data) {
+	private Integer[][] convert(DataSet<Integer> data) {
 		int N = data.numSequences();
 		int T = data.numSites();
 		Integer[][] matrix = new Integer[N][T];
@@ -20,14 +20,10 @@ public class DataSetConverter implements Collectable {
 		for (Haplotype hh : data.getHaplotypes()) {
 			int sid = 0;
 			for (Site ss : data.getSites()) {
-				Boolean val = data.get(ss, hh);
+				Integer val = data.get(ss, hh);
 				if (val == null) {
 					matrix[hid][sid] = -1;
-				} else if (val) {
-					matrix[hid][sid] = 1;
-				} else {
-					matrix[hid][sid] = 0;
-				}
+				} else matrix[hid][sid] = val.intValue();
 				sid++;
 			}
 			hid++;
@@ -35,21 +31,13 @@ public class DataSetConverter implements Collectable {
 		for (Diplotype dd : data.getDiplotypes()) {
 			int sid = 0;
 			for (Site ss : data.getSites()) {
-				Boolean[] val = data.get(ss, dd);
+				Integer[] val = data.get(ss, dd);
 				if (val[0] == null) {
 					matrix[hid][sid] = -1;
-				} else if (val[0]) {
-					matrix[hid][sid] = 1;
-				} else {
-					matrix[hid][sid] = 0;
-				}
+				} else matrix[hid][sid] = val[0].intValue();
 				if (val[1] == null) {
 					matrix[hid+1][sid] = -1;
-				} else if (val[1]) {
-					matrix[hid+1][sid] = 1;
-				} else {
-					matrix[hid+1][sid] = 0;
-				}
+				} else matrix[hid][sid] = val[1].intValue();
 				sid++;
 			}
 			hid+=2;

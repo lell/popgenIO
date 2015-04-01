@@ -23,6 +23,7 @@ import java.util.zip.GZIPInputStream;
 
 import popgenIO.Core.BitDataSet;
 import popgenIO.Core.DataSet;
+import popgenIO.Core.IntDataSet;
 import popgenIO.Core.Site;
 import popgenIO.Formats.BeagleFile.ParseError;
 
@@ -48,6 +49,7 @@ public class VCFFile {
 		return read(filename,contig,-1,-1);
 	}
 
+	// TODO: fix for higher ploidys
 	/**
 	 * We force the specification of a contig name because we want to enforce processing a single chromosome at a time.
 	 * This is good practice in general for parallelizing runs, but also, it's more work to process multiple chromosomes
@@ -95,11 +97,11 @@ public class VCFFile {
 		int genotype_index = 0, site_cnt = 0;
 		List<String> sequence_ids = new ArrayList<String>();
 		String chromosome = null;
-		DataSet<Boolean> gds = null;
+		DataSet<Integer> gds = null;
 		boolean[] isGenotype = new boolean[num_individuals];
 
 		// indexed by [number of genotypes/diplotypes][which sequence (doesn't matter for genotypes)][number of sites]
-		Boolean[][][] genotypes_and_diplotypes = new Boolean[num_individuals][2][line_counter];
+		Integer[][][] genotypes_and_diplotypes = new Integer[num_individuals][2][line_counter];
 		line_counter=0;
 
 		while (scan.hasNext()) {
@@ -139,7 +141,7 @@ public class VCFFile {
 				}
 
 				if(gds == null) {
-					gds = new BitDataSet(sites.length, 2 * sequence_ids.size());
+					gds = new IntDataSet(sites.length, 2 * sequence_ids.size());
 				}
 
 				// If we want to correctly parse the alleles, we need to change Site from char[] to String[]
@@ -232,23 +234,17 @@ public class VCFFile {
 	 * @param booleans
 	 * @param err
 	 */
-	private static void printHap(Boolean[] hap, PrintStream err) {
-		for (Boolean b : hap) {
-			if(b)
-				err.print("1");
-			else err.print("0");
+	private static void printHap(Integer[] hap, PrintStream err) {
+		for (Integer i : hap) {
+			err.print(i);
 		}
 		System.err.println();
 	}
 
-	private static Boolean getGenotypeVal(char allele) throws ParseError {
-		if(allele == '0') 
-			return false;
-		else if(allele == '1') 
-			return true;
-		else if(allele == '.') 
+	private static Integer getGenotypeVal(char allele) {
+		if(allele == '.') 
 			return null;
-		else throw new ParseError("Did not understand allele " + allele + " in the VCF file.");
+		else return new Integer(Character.getNumericValue(allele));
 	}
 
 	private static double normalize(double val, double low_bound, double up_bound) {

@@ -45,7 +45,10 @@ public class IntDataSet implements DataSet<Integer>, Serializable {
 		
 		this.observed = (BitSet) data.observed.clone();
 		this.allele = new ArrayList<Integer>(data.numsequences * data.numsites);
-		Collections.copy(this.allele, data.allele);
+		for (Integer allele : data.allele) {
+			this.allele.add(allele);
+		}
+
 		for (Site site : data.getSites()) {
 			addSite(site.globalize());
 		}
@@ -180,6 +183,15 @@ public class IntDataSet implements DataSet<Integer>, Serializable {
 		}
 	}
 
+	final private void addAllele(int sid, int qid, Integer aa) {
+		if (aa == null) {
+			setObserved(sid, qid, false);
+		} else {
+			allele.add(aa);
+			setObserved(sid, qid, true);
+		}
+	}
+
 
 	final private void setObserved(int sid, int qid, boolean aa) {
 		observed.set(index(sid, qid), aa);
@@ -194,8 +206,8 @@ public class IntDataSet implements DataSet<Integer>, Serializable {
 		for (int t = 0; t < numsites; t++) {
 			if (data[0][t] != null) {
 				assert data[1][t] != null;
-				setAllele(t, index, data[0][t]);
-				setAllele(t, index+1, data[1][t]);
+				addAllele(t, index, data[0][t]);
+				addAllele(t, index+1, data[1][t]);
 				
 				setObserved(t, index, true);
 				setObserved(t, index+1, true);
@@ -223,8 +235,8 @@ public class IntDataSet implements DataSet<Integer>, Serializable {
 		for (int t = 0; t < numsites; t++) {
 			if (data[t][0] != null) {
 				assert data[t][1] != null;
-				setAllele(t, index, data[t][0]);
-				setAllele(t, index+1, data[t][1]);
+				addAllele(t, index, data[t][0]);
+				addAllele(t, index+1, data[t][1]);
 				
 				setObserved(t, index, true);
 				setObserved(t, index+1, true);
@@ -251,7 +263,7 @@ public class IntDataSet implements DataSet<Integer>, Serializable {
 		Haplotype haplotype = new Haplotype(name, index);
 		for (int t = 0; t < numsites; t++) {
 			if (data[t] != null) {
-				setAllele(t, index, data[t]);
+				addAllele(t, index, data[t]);
 			} else {
 				setObserved(t, index, false);
 			}
