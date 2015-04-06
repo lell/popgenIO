@@ -22,6 +22,7 @@ public class IntDataSet implements DataSet<Integer>, Serializable {
 	int numsites = 0;
 	int index;
 	int site_index = 0;
+	private int max_alleles_at_any_site = 0;
 	
 	SortedMap<String, Site> sites;
 	LinkedHashMap<String, Genotype> genotypes;
@@ -43,6 +44,7 @@ public class IntDataSet implements DataSet<Integer>, Serializable {
 	public IntDataSet(IntDataSet data) {
 		this(data.numsites, data.numsequences);
 		
+		this.max_alleles_at_any_site = data.max_alleles_at_any_site;
 		this.observed = (BitSet) data.observed.clone();
 		this.allele = new ArrayList<Integer>(data.numsequences * data.numsites);
 		for (Integer allele : data.allele) {
@@ -131,6 +133,8 @@ public class IntDataSet implements DataSet<Integer>, Serializable {
 	public Site addSite(GlobalSite site) {
 		assert site != null;
 		Site localized = new Site(site_index++, site);
+		if(localized.getAlleles().length>max_alleles_at_any_site)
+			max_alleles_at_any_site = localized.getAlleles().length;
 		sites.put(site.getName(), localized);
 		return localized;
 	}
@@ -580,5 +584,9 @@ public class IntDataSet implements DataSet<Integer>, Serializable {
 	@Override
 	public boolean isHeterozygous(Site ss, Genotype gg) {
 		return get(ss,gg)[0]!=get(ss,gg)[1];
+	}
+	
+	public int getMaxAlleles() {
+		return max_alleles_at_any_site;
 	}
 }
