@@ -7,6 +7,7 @@ package popgenIO.Manager;
 import java.util.*;
 import java.io.Serializable;
 
+import popgenIO.Core.ArrayDataSet;
 import popgenIO.Core.DataSet;
 import popgenIO.Core.Diplotype;
 import popgenIO.Core.Genotype;
@@ -14,8 +15,8 @@ import popgenIO.Core.Haplotype;
 import popgenIO.Core.Site;
 
 
-abstract class AbstractIntManager implements Manager<Integer>, Cloneable, Serializable {
-	protected DataSet<Integer> allData;
+abstract class AbstractIntManager implements ArrayManager<byte[]>, Cloneable, Serializable {
+	protected ArrayDataSet<byte[]> allData;
 	// these are the prediction probabilities for genotypes+haplotypes/sites.
 	private HashMap<Genotype, HashMap<Site, Double>> probgenotype00,
 			probgenotype11, probgenotype01;
@@ -28,7 +29,7 @@ abstract class AbstractIntManager implements Manager<Integer>, Cloneable, Serial
 
 	public int predictionMethod = 1;
 
-	public AbstractIntManager(DataSet<Integer> dataset) {
+	public AbstractIntManager(ArrayDataSet<byte[]> dataset) {
 		allData = dataset;
 		clearPredictions();
 	}
@@ -349,16 +350,16 @@ abstract class AbstractIntManager implements Manager<Integer>, Cloneable, Serial
 	}
 	
 	@Override
-	public Integer[] getPrediction(Site ss, Diplotype dd) {
+	public byte[] getPrediction(Site ss, Diplotype dd) {
 		double[] probs = getProbabilities(ss, dd);
 		if (probs[0] >= probs[1] && probs[0] >= probs[2] && probs[0] >= probs[3]) {
-			return new Integer[]{ 0, 0 };
+			return new byte[]{ 0, 0 };
 		} else if (probs[1] >= probs[0] && probs[1] >= probs[2] && probs[1] >= probs[3]) {
-			return new Integer[]{ 0, 1 };
+			return new byte[]{ 0, 1 };
 		} else if (probs[2] >= probs[0] && probs[2] >= probs[1] && probs[2] >= probs[3]) {
-			return new Integer[]{ 1, 0 };
+			return new byte[]{ 1, 0 };
 		} else if (probs[3] >= probs[0] && probs[3] >= probs[1] && probs[3] >= probs[2]) {
-			return new Integer[]{ 1, 1 };
+			return new byte[]{ 1, 1 };
 		} else {
 			assert false;
 			return null;
@@ -389,17 +390,17 @@ abstract class AbstractIntManager implements Manager<Integer>, Cloneable, Serial
 	}
 
 	@Override
-	public Integer[] getPrediction(Site ss, Genotype gg) {
+	public byte[] getPrediction(Site ss, Genotype gg) {
 		double[] probs = getProbabilities(ss, gg);
 		if (predictionMethod == 0) {
 			// old predictionMethod
 			if (probs[0] >= .33) {
-				return new Integer[]{ 0, 0 };
+				return new byte[]{ 0, 0 };
 			}
 			if (probs[1] >= .33) {
-				return new Integer[]{ 0, 1 };
+				return new byte[]{ 0, 1 };
 			} else {
-				return new Integer[]{ 1, 1 };
+				return new byte[]{ 1, 1 };
 			}
 		} else if (predictionMethod == 1 || predictionMethod == 2) {
 			// a priori chance of heterozygous is 50%, while homozygous 0 or 1
@@ -408,23 +409,23 @@ abstract class AbstractIntManager implements Manager<Integer>, Cloneable, Serial
 			assert predictionMethod == 1 || predictionMethod == 2;
 			probs[1] = probs[1] / predictionMethod;
 			if (probs[1] >= probs[0] && probs[1] >= probs[2]) {
-				return new Integer[]{ 0, 1 };
+				return new byte[]{ 0, 1 };
 			}
 			if (probs[0] >= probs[1] && probs[0] >= probs[2]) {
-				return new Integer[] { 0, 0 };
+				return new byte[] { 0, 0 };
 			} else {
-				return new Integer[] { 1, 1 };
+				return new byte[] { 1, 1 };
 			}
 		} else if (predictionMethod == 3) {
 			// use mean frequency
 			double mean = 2.0 * probs[2] + probs[1];
 			if (mean > 1.5) {
-				return new Integer[] { 1, 1 };
+				return new byte[] { 1, 1 };
 			}
 			if (mean < 0.5) {
-				return new Integer[] { 0, 0 };
+				return new byte[] { 0, 0 };
 			} else {
-				return new Integer[] { 0, 1 };
+				return new byte[] { 0, 1 };
 			}
 		} else {
 			System.err.println("Unknown prediction method");
@@ -468,7 +469,7 @@ abstract class AbstractIntManager implements Manager<Integer>, Cloneable, Serial
 	}
 
 	@Override
-	public Integer getPrediction(Site ss, Haplotype hh) {
+	public byte getPrediction(Site ss, Haplotype hh) {
 		double[] probs = getImputeProbabilities(ss, hh);
 		if (probs[1] > .5) {
 			return 1; // Ties go to zero.
@@ -479,27 +480,27 @@ abstract class AbstractIntManager implements Manager<Integer>, Cloneable, Serial
 	
 	// TODO: fix for dirichlet likelihood
 	@Override
-	public Integer[] getPredictedHaplotype(Site ss, Genotype gg) {
+	public byte[] getPredictedHaplotype(Site ss, Genotype gg) {
 		double[] probs = getPhasedProbabilities(ss, gg);
 		int max = 0;
 		for (int i = 1; i < probs.length; i++) if(probs[i]>probs[max]) max=i;
 		assert(max>=0&&max<=3);
 		
-		if (max==0) return new Integer[] {0, 0};
-		else if (max==1) return new Integer[] {0, 1};
-		else if (max==2) return new Integer[] {1, 0};
-		else return new Integer[] {1, 1};
+		if (max==0) return new byte[] {0, 0};
+		else if (max==1) return new byte[] {0, 1};
+		else if (max==2) return new byte[] {1, 0};
+		else return new byte[] {1, 1};
 		
 	}
 
 	@Override
-	public DataSet<Integer> getAllData() {
+	public ArrayDataSet<byte[]> getAllData() {
 		return allData.clone();
 	}
 
 	@Override
-	public DataSet<Integer>getTrainingSet() {
-		DataSet<Integer>trainset = allData.clone();
+	public ArrayDataSet<byte[]> getTrainingSet() {
+		ArrayDataSet<byte[]>trainset = allData.clone();
 		assert trainset != null;
 		for (Site ss : trainset.getSites()) {
 			for (Genotype geno : trainset.getGenotypes()) {
@@ -519,9 +520,9 @@ abstract class AbstractIntManager implements Manager<Integer>, Cloneable, Serial
 	}
 
 	@Override
-	public DataSet<Integer>getTestSet() {
+	public ArrayDataSet<byte[]>getTestSet() {
 		boolean hastest = false;
-		DataSet<Integer>testset = allData.clone();
+		ArrayDataSet<byte[]>testset = allData.clone();
 		assert testset != null;
 		for (Site ss : testset.getSites()) {
 			for (Genotype geno : testset.getGenotypes()) {
@@ -545,8 +546,8 @@ abstract class AbstractIntManager implements Manager<Integer>, Cloneable, Serial
 	}
 
 	@Override
-	public DataSet<Integer>getPredictedSet() {
-		DataSet<Integer> predicted = getTrainingSet().clone();
+	public ArrayDataSet<byte[]>getPredictedSet() {
+		ArrayDataSet<byte[]> predicted = getTrainingSet().clone();
 		for (Genotype gg : predicted.getGenotypes()) {
 			for (Site ss : predicted.getSites()) {
 				if (!isPredictable(ss, gg)) {
@@ -571,8 +572,8 @@ abstract class AbstractIntManager implements Manager<Integer>, Cloneable, Serial
 	}
 
 	@Override
-	public DataSet<Integer> getPhasedSet() {
-		DataSet<Integer> predicted = getTrainingSet().clone();
+	public ArrayDataSet<byte[]> getPhasedSet() {
+		ArrayDataSet<byte[]> predicted = getTrainingSet().clone();
 		for (Genotype gg : predicted.getGenotypes()) {
 			for (Site ss : predicted.getSites()) {
 				if(!isHeterozygous(ss, gg))
@@ -588,7 +589,7 @@ abstract class AbstractIntManager implements Manager<Integer>, Cloneable, Serial
 
 	@Override
 	public double getPredictionAccuracy() {
-		DataSet<Integer> predictions = getPredictedSet();
+		ArrayDataSet<byte[]> predictions = getPredictedSet();
 		return getPredictionAccuracy(predictions);
 	}
 
@@ -626,7 +627,7 @@ abstract class AbstractIntManager implements Manager<Integer>, Cloneable, Serial
 		
 		for (Haplotype hh : allData.getHaplotypes()) {
 			if (allData.isObserved(ss, hh)) {
-				numerator += allData.get(ss, hh);
+				numerator += allData.getAllele(ss, hh);
 				denominator += 1.0;
 			}
 		}

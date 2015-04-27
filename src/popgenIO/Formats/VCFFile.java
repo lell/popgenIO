@@ -21,8 +21,10 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.zip.GZIPInputStream;
 
+import popgenIO.Core.ArrayDataSet;
 import popgenIO.Core.BitDataSet;
 import popgenIO.Core.DataSet;
+import popgenIO.Core.GlobalSite;
 import popgenIO.Core.IntDataSet;
 import popgenIO.Core.Site;
 import popgenIO.Formats.BeagleFile.ParseError;
@@ -45,7 +47,7 @@ public class VCFFile {
 		}
 	}
 
-	public static DataSet read(String filename, String contig) throws Exception {
+	public static ArrayDataSet read(String filename, String contig) throws Exception {
 		return read(filename,contig,-1,-1);
 	}
 
@@ -59,30 +61,63 @@ public class VCFFile {
 	 * @return
 	 * @throws Exception
 	 */
-	public static DataSet read(String filename, String contig, int random_number_genotypes, int random_number_haplotypes) throws Exception {
+	public static ArrayDataSet read(String filename, String contig, int random_number_genotypes, int random_number_haplotypes) throws Exception {
 		if(!(new File(filename).exists()))
 			filename = getVCFFile(filename);
-		Scanner scan = tryOpen(filename);
 
-		int minPosition = 0, maxPosition = Integer.MAX_VALUE, num_individuals = 0;
+		//TODO: add check if number of alleles at any site is greater than Byte.maxval
+		
+		boolean[] isGenotype = null;
+		String[] parts=null, parts2 = null;
+		int num_individuals=0;
+		int minPosition = 0, maxPosition = Integer.MAX_VALUE;
 		// Assumes VCF is sorted (per specification)
 		BufferedReader reader = new BufferedReader(new FileReader(filename));
 		int line_counter = 0;
-		String line = null;
+		int genotype_index = 0;
+		List<String> sequence_ids = new ArrayList<String>();
+		String line = reader.readLine();
 		int pos = -1;
-		while ((line = reader.readLine()) != null) {
+		do  {
 			if(!line.startsWith("#")) {
 				if(line.trim().equals(""))
 					continue;
-				String[] parts = line.split("\t");
-				num_individuals = parts.length-9;
-				pos = Integer.parseInt(parts[1]);
-				if(line_counter==0)
-					minPosition = new Integer(pos);
-				line_counter++;
 
-			}
-		}
+				// figure out if its a genotype (anything with a heterozygous entry is a genotype
+				// variant line
+				parts = line.split("\t");
+
+				// If we want to correctly parse the alleles, we need to change Site from char[] to String[]
+				for (int i = 9; i < parts.length; i++) {
+					if(parts[i].contains("/"))
+						isGenotype[i]=true;
+				}
+				if(line_counter==0) {
+					pos = Integer.parseInt(parts[1]);
+					minPosition = new Integer(pos);
+					// format column, figure out where the genotype is
+					parts2 = parts[8].split(":");
+					for (int i = 0; i < parts2.length; i++) {
+						parts[i].equals("GT");
+						genotype_index = i;
+					}
+				}
+
+				line_counter++;
+			} else if (line.startsWith("##")) {
+				continue;
+			} else if (line.startsWith("#")) {
+				// header, get individuals... the first column is always CHROM, so it's fine to skip
+				parts = line.split("\t");
+				num_individuals = parts.length-9;
+				isGenotype = new boolean[num_individuals];
+
+				for (int i = 9; i < parts.length; i++) {
+					sequence_ids.add(parts[i]);					
+				}
+			} 
+		} while ((line = reader.readLine()) != null);
+
 		List<Integer> indices = new ArrayList<Integer>();
 		for (int i = 0; i < num_individuals; i++) {
 			indices.add(i);
@@ -94,92 +129,78 @@ public class VCFFile {
 		reader.close();
 
 		Site[] sites = new Site[line_counter];
-		int genotype_index = 0, site_cnt = 0;
-		List<String> sequence_ids = new ArrayList<String>();
+		int site_cnt = 0;
 		String chromosome = null;
-		DataSet<Integer> gds = null;
-		boolean[] isGenotype = new boolean[num_individuals];
+		if((2 * sequence_ids.size())>Short.MAX_VALUE) 
+			throw new IllegalArgumentException("Technical limitation: Can only have a maximum of " + Short.MAX_VALUE + " individuals. Found " + 2 * sequence_ids.size());
+		
+		ArrayDataSet<byte[]> gds = new IntDataSet(sites.length, 2 * sequence_ids.size());
+
+		for (int i = 0; i < isGenotype.length; i++) {
+			if(isGenotype[i]) {
+				gds.addGenotype(sequence_ids.get(i));
+			} else {
+				gds.addHaplotype(sequence_ids.get(i) + "A");
+				gds.addHaplotype(sequence_ids.get(i) + "B");
+			}
+		}
+
+		reader.close();
+		reader = new BufferedReader(new FileReader(filename));
+		line = null;
 
 		// indexed by [number of genotypes/diplotypes][which sequence (doesn't matter for genotypes)][number of sites]
-		Integer[][][] genotypes_and_diplotypes = new Integer[num_individuals][2][line_counter];
+		//int[][][] genotypes_and_diplotypes = new int[num_individuals][2][line_counter];
 		line_counter=0;
 
-		while (scan.hasNext()) {
-			String type = scan.next();
-			if (type.startsWith("##")) {
-				// there is valuable information here, we chose not to use it
-				scan.nextLine();
+		while ((line=reader.readLine())!=null) {
+			if (line.startsWith("#") || line.trim().equals("")) {
+				// header information we ignore
 				continue;			
-			} else if (type.startsWith("#")) {
-				// header, get individuals... the first column is always CHROM, so it's fine to skip
-				Scanner line_scanner = new Scanner(scan.nextLine());
-				int number_columns = 1;
-				int number_sites = 0;
-				while(line_scanner.hasNext()) {
-					String column = line_scanner.next();
-					number_columns++;
-					if(number_columns==9) {
-						// format column, figure out where the genotype is
-						String[] parts = column.split(":");
-						for (int i = 0; i < parts.length; i++) {
-							parts[i].equals("GT");
-							genotype_index = i;
-						}
-					} else if(number_columns>9) {
-						sequence_ids.add(column);
-					} 
-				}
 			} else {
 				// variant line
-				Scanner line_scanner = new Scanner(scan.nextLine());
-				int number_columns = 1;
+				parts = line.split("\t");
 				if(chromosome==null) 
-					chromosome = type;
-				else if(!chromosome.equals(type)) {
-					line_scanner.close();
+					chromosome = parts[0];
+				else if(!chromosome.equals(parts[0])) {
+					reader.close();
 					throw new ParseError("Found more than one contig in the VCF file. Please filter all contigs except one.");
 				}
 
-				if(gds == null) {
-					gds = new IntDataSet(sites.length, 2 * sequence_ids.size());
-				}
-
 				// If we want to correctly parse the alleles, we need to change Site from char[] to String[]
-				int varpos = line_scanner.nextInt();
-				String varname = line_scanner.next();
+				int varpos = Integer.parseInt(parts[1]);
+				String varname = parts[2];
 				if(varname.equals("."))
 					varname = "VAR_" + chromosome + "_" + varpos;
 				sites[site_cnt] = new Site(site_cnt, normalize(varpos,(double)minPosition,(double)maxPosition), 
 						varname, new int[]{0,1});
-				number_columns+=2;
-				gds.addSite(sites[site_cnt++].globalize());
+				GlobalSite currentSite = sites[site_cnt++].globalize();
+				gds.addSite(currentSite);
+				for (int i = 9; i < parts.length; i++) {
+					// inside specification of genotypes
+					String genotype = parts[i].split(":")[genotype_index];
+					parts2 = genotype.split("\\||/");
 
-				while(line_scanner.hasNext()) {
-					String next_token = line_scanner.next();
-					if(number_columns>8) {
-						// inside specification of genotypes
-						String genotype = next_token.split(":")[genotype_index];
-						if(genotype.contains("|")) {
-							// phased
-						} else if(genotype.contains("/")) {
-							// unphased
-							isGenotype[number_columns-9]=true;
-						} else {
-							line_scanner.close();
-							throw new ParseError("Malformed genotype " + genotype);
-						}
-						String[] alleles = genotype.split("\\||/");
-						genotypes_and_diplotypes[number_columns-9][0][line_counter]=getGenotypeVal(alleles[0].charAt(0));
-						genotypes_and_diplotypes[number_columns-9][1][line_counter]=getGenotypeVal(alleles[1].charAt(0));
+					if(genotype.contains("|")) {
+						// phased
+						// Probably should be diplotype here, code largely supports haplotypes 
+						// only for inference (trajectories, etc...) should probably change in future
+						gds.set(gds.getSites().get(line_counter), gds.getHaplotype(sequence_ids.get(i-9) + "A"), getGenotypeVal(parts2[0].charAt(0)));
+						gds.set(gds.getSites().get(line_counter), gds.getHaplotype(sequence_ids.get(i-9) + "B"), getGenotypeVal(parts2[1].charAt(0)));
+					} else if(genotype.contains("/")) {
+						// unphased
+						gds.set(gds.getSites().get(line_counter), gds.getGenotype(sequence_ids.get(i-9)), 
+								new byte[] {getGenotypeVal(parts2[0].charAt(0)),getGenotypeVal(parts2[1].charAt(0))});
+					} else {
+						reader.close();
+						throw new ParseError("Malformed genotype " + genotype);
 					}
-					number_columns++;
 				}
 				line_counter++;
-				line_scanner.close();
 			}
 		}
-		System.err.println("True haplotypes");
-		if(random_number_genotypes>=0 && random_number_haplotypes>=0) {
+
+		/*if(random_number_genotypes>=0 && random_number_haplotypes>=0) {
 			for (int i = 0; i < num_individuals; i++) {
 				if(isGenotype[indices.get(i)]) { 
 					if(random_number_genotypes>0) {
@@ -215,18 +236,7 @@ public class VCFFile {
 						(random_number_haplotypes+gds.getHaplotypes().size()) + 
 						" but only found " + gds.getHaplotypes().size()+".");
 			}
-		} else {
-			for (int i = 0; i < num_individuals; i++) {
-				if(isGenotype[indices.get(i)]) { 
-					gds.addGenotype(sequence_ids.get(indices.get(i)), genotypes_and_diplotypes[indices.get(i)]);
-				} else {
-					// Probably should be diplotype here, code largely supports haplotypes 
-					// only for inference (trajectories, etc...) should probably change in future
-					gds.addHaplotype(sequence_ids.get(indices.get(i)) + "A", genotypes_and_diplotypes[indices.get(i)][0]);
-					gds.addHaplotype(sequence_ids.get(indices.get(i)) + "B", genotypes_and_diplotypes[indices.get(i)][1]);
-				}
-			}
-		}
+		} */
 		return gds;
 	}
 
@@ -234,17 +244,21 @@ public class VCFFile {
 	 * @param booleans
 	 * @param err
 	 */
-	private static void printHap(Integer[] hap, PrintStream err) {
-		for (Integer i : hap) {
+	private static void printHap(int[] hap, PrintStream err) {
+		for (int i : hap) {
 			err.print(i);
 		}
 		System.err.println();
 	}
 
-	private static Integer getGenotypeVal(char allele) {
+	private static byte getGenotypeVal(char allele) {
 		if(allele == '.') 
-			return null;
-		else return new Integer(Character.getNumericValue(allele));
+			return -1;
+		
+		int a = Character.getNumericValue(allele);
+		if(a>Byte.MAX_VALUE)
+			throw new IllegalArgumentException("Expected a byte encoding for allele, found " + allele);
+		else return (byte)Character.getNumericValue(allele);
 	}
 
 	private static double normalize(double val, double low_bound, double up_bound) {

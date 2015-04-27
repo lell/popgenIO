@@ -40,7 +40,7 @@ public class DataSetCollector implements Collector {
 			returned = cc.get(property);
 		}
 		assert returned != null : property;
-		FlatFile.write((DataSet<Boolean>)returned, filename);
+		FlatFile.write((ArrayDataSet<byte[]>)returned, filename);
 	}
 
 	@Override

@@ -4,6 +4,7 @@
 
 package popgenIO.Manager;
 
+import popgenIO.Core.ArrayDataSet;
 import popgenIO.Core.DataSet;
 import popgenIO.Core.Diplotype;
 import popgenIO.Core.Genotype;
@@ -15,9 +16,9 @@ import java.io.Serializable;
 public class TrainingIntManager extends AbstractIntManager implements Serializable {
 
 	private static final long serialVersionUID = -6539178646201017894L;
-	DataSet<Integer> test;
+	ArrayDataSet<int[]> test;
 
-	public TrainingIntManager(DataSet<Integer> train) {
+	public TrainingIntManager(ArrayDataSet<byte[]> train) {
 		super(train);
 		wantUnobserved();
 		/* TODO: Add phasing results into collector framework */
@@ -25,23 +26,20 @@ public class TrainingIntManager extends AbstractIntManager implements Serializab
 	}
 
 	public void wantUnobserved() {
-		DataSet<Integer> trainset = this.getTrainingSet();
+		ArrayDataSet<byte[]> trainset = this.getTrainingSet();
 		for (Site ss : trainset.getSites()) {
-
 			for (Genotype gg : trainset.getGenotypes()) {
 				if (!trainset.isObserved(ss, gg)) {
 					wantPrediction(ss, gg);
 					assert isPredictable(ss, gg);
 				}
 			}
-
 			for (Diplotype dd : trainset.getDiplotypes()) {
 				if (!trainset.isObserved(ss, dd)) {
 					wantPrediction(ss, dd);
 					assert isPredictable(ss, dd);
 				}
-			}
-		
+			}		
 			for (Haplotype hh : trainset.getHaplotypes()) {
 				if (!trainset.isObserved(ss, hh)) {
 					wantPrediction(ss, hh);
@@ -52,7 +50,7 @@ public class TrainingIntManager extends AbstractIntManager implements Serializab
 	}
 	
 	public void wantUnphased() {
-		DataSet<Integer> trainset = this.getTrainingSet();
+		ArrayDataSet<byte[]> trainset = this.getTrainingSet();
 		for (Site ss : trainset.getSites()) {
 			for (Genotype gg : trainset.getGenotypes()) {
 				if (trainset.isHeterozygous(ss, gg)) {
@@ -63,7 +61,7 @@ public class TrainingIntManager extends AbstractIntManager implements Serializab
 		}
 	}
 
-	public void attachTestSet(DataSet<Integer> test) {
+	public void attachTestSet(ArrayDataSet<int[]> test) {
 		this.test = test;
 	}
 
@@ -96,7 +94,7 @@ public class TrainingIntManager extends AbstractIntManager implements Serializab
 
 			for (Haplotype hh : test.getHaplotypes()) {
 				if (test.isObserved(ss, hh)) {
-					if ((test.get(ss, hh)==1?true:false) == mean) {
+					if ((test.getAllele(ss, hh)==1?true:false) == mean) {
 						numerator += 1.0;
 					}
 					denominator += 1.0;
@@ -107,7 +105,7 @@ public class TrainingIntManager extends AbstractIntManager implements Serializab
 	}
 
 	@Override
-	public double getPredictionAccuracy(DataSet<Integer> predictions) {
+	public double getPredictionAccuracy(ArrayDataSet<byte[]> predictions) {
 		assert test != null;
 		double numerator = 0.0;
 		double denominator = 0.0;
@@ -161,7 +159,7 @@ public class TrainingIntManager extends AbstractIntManager implements Serializab
 
 			for (Haplotype hh : test.getHaplotypes()) {
 				if (test.isObserved(ss, hh)) {
-					if (predictions.get(ss, hh) == test.get(ss, hh)) {
+					if (predictions.getAllele(ss, hh) == test.getAllele(ss, hh)) {
 						numerator += 1.0;
 					}
 					denominator += 1.0;
@@ -170,7 +168,7 @@ public class TrainingIntManager extends AbstractIntManager implements Serializab
 
 			for (Haplotype hh : test.getHaplotypes()) {
 				if (test.isObserved(ss, hh)) {
-					if (predictions.get(ss, hh) == test.get(ss, hh)) {
+					if (predictions.getAllele(ss, hh) == test.getAllele(ss, hh)) {
 						numerator += 1.0;
 					}
 					denominator += 1.0;

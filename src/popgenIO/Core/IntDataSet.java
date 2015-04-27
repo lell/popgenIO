@@ -15,62 +15,74 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.io.Serializable;
 
-public class IntDataSet implements DataSet<Integer>, Serializable {
-	BitSet observed = null;
-	List<Integer> allele = null;
+public class IntDataSet implements ArrayDataSet<byte[]>, Serializable {
+	private static final long serialVersionUID = -6752732948863408884L;
+	byte[][] allele = null;
 	int numsequences = 0;
 	int numsites = 0;
 	int index;
 	int site_index = 0;
 	private int max_alleles_at_any_site = 0;
-	
+
 	SortedMap<String, Site> sites;
 	LinkedHashMap<String, Genotype> genotypes;
 	LinkedHashMap<String, Diplotype> diplotypes;
 	LinkedHashMap<String, Haplotype> haplotypes;
 
+	List<Site> sss;;
+	List<Haplotype> hhs;
+	List<Diplotype> dds;
+	List<Genotype> ggs;
+
 	public IntDataSet(int numsites, int numsequences) {
 		this.numsites = numsites;
 		this.numsequences = numsequences;
-		observed = new BitSet(numsequences * numsites);
-		allele = new ArrayList<Integer>(numsequences * numsites);
-		
+		allele = new byte[numsequences][numsites];
 		sites = new TreeMap();
+		sss = new ArrayList<Site>();
 		genotypes = new LinkedHashMap();	
 		diplotypes = new LinkedHashMap();		
 		haplotypes = new LinkedHashMap();
+		hhs = new ArrayList<Haplotype>();
+		dds = new ArrayList<Diplotype>();
+		ggs = new ArrayList<Genotype>();
 	}
 
 	public IntDataSet(IntDataSet data) {
 		this(data.numsites, data.numsequences);
-		
+
 		this.max_alleles_at_any_site = data.max_alleles_at_any_site;
-		this.observed = (BitSet) data.observed.clone();
-		this.allele = new ArrayList<Integer>(data.numsequences * data.numsites);
-		for (Integer allele : data.allele) {
-			this.allele.add(allele);
+		this.allele = new byte[data.numsequences][data.numsites];
+		for (int i = 0; i < data.allele.length; i++) {
+			this.allele[i]=data.allele[i];
 		}
 
 		for (Site site : data.getSites()) {
 			addSite(site.globalize());
 		}
-		
+
 		for (Genotype genotype : data.getGenotypes()) {
-			genotypes.put(genotype.getName(), genotype.clone());
+			Genotype cloned = genotype.clone();
+			genotypes.put(genotype.getName(), cloned);
+			ggs.add(cloned);
 		}
 		for (Diplotype diplotype: data.getDiplotypes()) {
-			diplotypes.put(diplotype.getName(), diplotype.clone());
+			Diplotype cloned = diplotype.clone();
+			diplotypes.put(diplotype.getName(), cloned);
+			dds.add(cloned);
 		}
 		for (Haplotype haplotype : data.getHaplotypes()) {
-			haplotypes.put(haplotype.getName(), haplotype.clone());
+			Haplotype cloned = haplotype.clone();
+			haplotypes.put(haplotype.getName(), cloned);
+			hhs.add(cloned);
 		}
 	}
-	
+
 	@Override
 	public Site localize(GlobalSite site) {
 		return sites.get(site.getName());
 	}
-	
+
 	@Override
 	public int numSites() {
 		return numsites;
@@ -80,40 +92,32 @@ public class IntDataSet implements DataSet<Integer>, Serializable {
 	public int numSequences() {
 		return numsequences;
 	}
-	
+
 	@Override
 	public List<Genotype> getGenotypes() {
-		List<Genotype> ggs = new ArrayList();
-		ggs.addAll(genotypes.values());
 		return ggs;
 	}
 
 	@Override
 	public List<Diplotype> getDiplotypes() {
-		List<Diplotype> dds = new ArrayList();
-		dds.addAll(diplotypes.values());
 		return dds;
 	}
 
 	@Override
 	public List<Haplotype> getHaplotypes() {
-		List<Haplotype> hhs = new ArrayList();
-		hhs.addAll(haplotypes.values());
 		return hhs;
 	}
-	
+
 	@Override
 	public List<Site> getSites() {
-		List<Site> sss = new ArrayList();
-		sss.addAll(sites.values());
 		return sss;
 	}
-	
+
 	@Override
 	public Site getSite(String name) {
 		return sites.get(name);
 	}
-	
+
 	@Override
 	public Genotype getGenotype(String name) {
 		return genotypes.get(name);
@@ -128,7 +132,7 @@ public class IntDataSet implements DataSet<Integer>, Serializable {
 	public Haplotype getHaplotype(String name) {
 		return haplotypes.get(name);
 	}
-	
+
 	@Override
 	public Site addSite(GlobalSite site) {
 		assert site != null;
@@ -136,32 +140,33 @@ public class IntDataSet implements DataSet<Integer>, Serializable {
 		if(localized.getAlleles().length>max_alleles_at_any_site)
 			max_alleles_at_any_site = localized.getAlleles().length;
 		sites.put(site.getName(), localized);
+		sss.add(localized);
 		return localized;
 	}
-	
+
 	@Override
 	public IntDataSet clone() {
 		return new IntDataSet(this);
 	}
-	
+
 	public static IntDataSet unobserved(int T, int N) {
 		IntDataSet data = new IntDataSet(T, N);
 		for (int t = 0; t < T; t++) {
 			data.addSite(new Site(t).globalize());
 		}
-		
+
 		for (int i = 0; i < N; i++) {
-			Integer[] haplotype = new Integer[T];
+			byte[] haplotype = new byte[T];
 			for (int t = 0; t < T; t++) {
-				haplotype[t] = null;
+				haplotype[t] = -1;
 			}
 			data.addHaplotype(haplotype);
 		}
 		return data;
 	}
 
-	final private boolean isObserved(int sid, int qid) {
-		return observed.get(index(sid, qid));
+	final private boolean isObserved(int individual, int site) {
+		return allele[individual][site]!=-1;
 	}
 
 	final int index(int sid, int qid) {
@@ -170,115 +175,128 @@ public class IntDataSet implements DataSet<Integer>, Serializable {
 		return sid + (qid * numSites());
 	}
 
-	final private Integer getAllele(int sid, int qid) {
-		if (!isObserved(sid, qid)) {
-			return null;
-		} else {
-			return allele.get(index(sid, qid));
-		}
+	final private byte getAllele(int individual, int site) {
+		return allele[individual][site];
 	}
 
-	final private void setAllele(int sid, int qid, Integer aa) {
-		if (aa == null) {
+	final private void setAllele(int individual, int site, byte aa) {
+		allele[individual][site]=aa;
+	}
+
+	/*final private void addAllele(int sid, int qid, int aa) {
+		if (aa < 0) {
 			setObserved(sid, qid, false);
 		} else {
-			allele.set(index(sid, qid), aa);
+			allele[sid][qid]=aa;
 			setObserved(sid, qid, true);
 		}
-	}
-
-	final private void addAllele(int sid, int qid, Integer aa) {
-		if (aa == null) {
-			setObserved(sid, qid, false);
-		} else {
-			allele.add(aa);
-			setObserved(sid, qid, true);
-		}
-	}
+	}*/
 
 
-	final private void setObserved(int sid, int qid, boolean aa) {
+	/*final private void setObserved(int sid, int qid, boolean aa) {
 		observed.set(index(sid, qid), aa);
-	}
-	
+	}*/
+
 	@Override
-	public Genotype addGenotype(String name, Integer[][] data) {
+	public Genotype addGenotype(String name) {
+		Genotype genotype = new Genotype(name, index);
+		index += 2;
+		genotypes.put(name, genotype);
+		ggs.add(genotype);
+		return genotype;
+	}
+
+	@Override
+	public Haplotype addHaplotype(String name) {
+		Haplotype haplotype = new Haplotype(name, index);
+		index ++;
+		haplotypes.put(name, haplotype);
+		hhs.add(haplotype);
+		return haplotype;
+	}
+
+	@Override
+	public Diplotype addDiplotype(String name) {
+		Diplotype diplotype = new Diplotype(name, index);
+		index += 2;
+		diplotypes.put(name, diplotype);
+		dds.add(diplotype);
+		return diplotype;
+	}
+
+	@Override
+	public Genotype addGenotype(String name, byte[][] data) {
+		// expand the allele array by the size of this sequence
+		expandArrayByX(allele,2);
 		if (name == null) {
 			name = String.format("G%06d", index);
 		}
 		Genotype genotype = new Genotype(name, index);
 		for (int t = 0; t < numsites; t++) {
-			if (data[0][t] != null) {
-				assert data[1][t] != null;
-				addAllele(t, index, data[0][t]);
-				addAllele(t, index+1, data[1][t]);
-				
-				setObserved(t, index, true);
-				setObserved(t, index+1, true);
-			} else {
-				setObserved(t, index, false);
-				setObserved(t, index, false);
-			}
+			setAllele(index, t, data[0][t]);
+			setAllele(index+1, t, data[1][t]);
 		}
 		index += 2;
 		genotypes.put(name, genotype);
+		ggs.add(genotype);
 		return genotype;
 	}
 
 	@Override
-	public Genotype addGenotype(Integer[][] data) {
+	public Genotype addGenotype(byte[][] data) {
 		return addGenotype(null, data);
 	}
 
 	@Override
-	public Diplotype addDiplotype(String name, Integer[][] data) {
+	public Diplotype addDiplotype(String name, byte[][] data) {
+		// expand the allele array by the size of this sequence
+		expandArrayByX(allele,2);
 		if (name == null) {
 			name = String.format("D%06d", index);
 		}
 		Diplotype diplotype = new Diplotype(name, index);
 		for (int t = 0; t < numsites; t++) {
-			if (data[t][0] != null) {
-				assert data[t][1] != null;
-				addAllele(t, index, data[t][0]);
-				addAllele(t, index+1, data[t][1]);
-				
-				setObserved(t, index, true);
-				setObserved(t, index+1, true);
-			} else {
-				setObserved(t, index, false);
-				setObserved(t, index+1, false);
-			}
+			setAllele(index, t, data[0][t]);
+			setAllele(index+1, t, data[1][t]);
 		}
 		index += 2;
 		diplotypes.put(name, diplotype);
+		dds.add(diplotype);
 		return diplotype;
 	}
 
+	private void expandArrayByX(byte[][] array, int x) {
+		byte[][] newArray = new byte[array.length+x][array[0].length];
+		for (int i = 0; i < array.length; i++) {
+			System.arraycopy(array[i], 0, newArray[i], 0, array[0].length);			
+		}
+		array=newArray;
+	}
+
 	@Override
-	public Diplotype addDiplotype(Integer[][] data) {
+	public Diplotype addDiplotype(byte[][] data) {
 		return addDiplotype(null, data);
 	}
 
 	@Override
-	public Haplotype addHaplotype(String name, Integer[] data) {
+	public Haplotype addHaplotype(String name, byte[] data) {
+		// expand the allele array by the size of this sequence
+		expandArrayByX(allele,1);
 		if (name == null) {
 			name = String.format("H%06d", index);
 		}
 		Haplotype haplotype = new Haplotype(name, index);
 		for (int t = 0; t < numsites; t++) {
-			if (data[t] != null) {
-				addAllele(t, index, data[t]);
-			} else {
-				setObserved(t, index, false);
-			}
+			setAllele(index, t, data[t]);
 		}
 		index += 1;
 		haplotypes.put(name, haplotype);
+		hhs.add(haplotype);
 		return haplotype;
 	}
 
 	@Override
-	public Haplotype addHaplotype(Integer[] data) {
+	public Haplotype addHaplotype(byte[] data) {
 		return addHaplotype(null, data);
 	}
 
@@ -299,113 +317,92 @@ public class IntDataSet implements DataSet<Integer>, Serializable {
 
 	@Override
 	public boolean isObserved(Site ss, Genotype gg) {
-		return isObserved(ss.getIndex(), gg.getIndex());
+		return isObserved(gg.getIndex(),ss.getIndex());
 	}
 
 	@Override
 	public boolean isObserved(Site ss, Haplotype hh) {
-		return isObserved(ss.getIndex(), hh.getIndex());
+		return isObserved(hh.getIndex(),ss.getIndex());
 	}
 
 	@Override
 	public boolean isObserved(Site ss, Diplotype dd) {
-		return isObserved(ss.getIndex(), dd.getIndex());
+		return isObserved(dd.getIndex(),ss.getIndex());
 	}
 
 	@Override
 	public void setObserved(Site ss, Genotype gg, boolean obs) {
-		setObserved(ss.getIndex(), gg.getIndex(), obs);
-		setObserved(ss.getIndex(), gg.getIndex()+1, obs);
-		
+		if(!obs) {
+			allele[ss.getIndex()][gg.getIndex()]=-1;
+			allele[ss.getIndex()][gg.getIndex()+1]=-1;
+		}
+
 	}
 
 	@Override
 	public void setObserved(Site ss, Haplotype hh, boolean obs) {
-		setObserved(ss.getIndex(), hh.getIndex(), obs);		
+		if(!obs)
+			allele[ss.getIndex()][hh.getIndex()]=-1;
 	}
 
 	@Override
 	public void setObserved(Site ss, Diplotype dd, boolean obs) {
-		setObserved(ss.getIndex(), dd.getIndex(), obs);
-		setObserved(ss.getIndex(), dd.getIndex()+1, obs);
-		
-	}
-
-	@Override
-	public Integer[] get(Site ss, Genotype gg) {
-		if (!isObserved(ss.getIndex(), gg.getIndex())) {
-			return new Integer[] { null, null };
-			
-		} else {
-			return new Integer[]{
-					getAllele(ss.getIndex(), gg.getIndex()),
-					getAllele(ss.getIndex(), gg.getIndex()+1)};
+		if(!obs) {
+			allele[ss.getIndex()][dd.getIndex()]=-1;
+			allele[ss.getIndex()][dd.getIndex()+1]=-1;
 		}
 	}
 
 	@Override
-	public Integer[] get(Site ss, Diplotype dd) {
-		if (!isObserved(ss.getIndex(), dd.getIndex())) {
-			return new Integer[] { null, null };
-		} else {
-			return new Integer[]{
-					getAllele(ss.getIndex(), dd.getIndex()),
-					getAllele(ss.getIndex(), dd.getIndex()+1)};
-		}
-		
+	public byte[] get(Site ss, Genotype gg) {		
+		return new byte[]{
+				getAllele( gg.getIndex(),ss.getIndex()),
+				getAllele(gg.getIndex()+1,ss.getIndex())};
 	}
 
 	@Override
-	public Integer get(Site ss, Diplotype dd, int phase) {
-		if (!isObserved(ss.getIndex(), dd.getIndex())) {
-			return null;
-		} else {
-			return getAllele(ss.getIndex(), dd.getIndex()+phase);
-		}
-		
+	public byte[] get(Site ss, Diplotype dd) {
+		return new byte[]{
+				getAllele( dd.getIndex(),ss.getIndex()),
+				getAllele(dd.getIndex()+1,ss.getIndex())};		
 	}
 
 	@Override
-	public Integer get(Site ss, Haplotype hh) {
-		if (!isObserved(ss.getIndex(), hh.getIndex())) {
-			return null;
-		} else {
-			return getAllele(ss.getIndex(), hh.getIndex());
-		}
+	public byte getAllele(Site ss, Diplotype dd, int phase) {
+		return getAllele( dd.getIndex()+phase,ss.getIndex());
 	}
 
 	@Override
-	public void set(Site ss, Genotype gg, Integer[] val) {
-		if (val == null || val[0] == null) {
-			setObserved(ss.getIndex(), gg.getIndex(), false);
-			setObserved(ss.getIndex(), gg.getIndex()+1, false);
-		} else {
-			setAllele(ss.getIndex(), gg.getIndex(), val[0]);
-			setAllele(ss.getIndex(), gg.getIndex()+1, val[1]);
-		}
-		
-		
+	public byte getAllele(Site ss, Haplotype hh) {
+		return getAllele(hh.getIndex(),ss.getIndex());
 	}
 
 	@Override
-	public void set(Site ss, Diplotype dd, Integer[] val) {
-		if (val == null || val[0] == null) {
-			setObserved(ss.getIndex(), dd.getIndex(), false);
-			setObserved(ss.getIndex(), dd.getIndex()+1, false);
-		} else {
-			setAllele(ss.getIndex(), dd.getIndex(), val[0]);
-			setAllele(ss.getIndex(), dd.getIndex()+1, val[1]);
-		}
-		
-	}
-
-	@Override
-	public void set(Site ss, Haplotype hh, Integer val) {
+	public void set(Site ss, Genotype gg, byte[] val) {
 		if (val == null) {
-			setObserved(ss.getIndex(), hh.getIndex(), false);
+			setObserved(ss, gg, false);
 		} else {
-			setAllele(ss.getIndex(), hh.getIndex(), val);
+			setAllele(gg.getIndex(),ss.getIndex(),val[0]);
+			setAllele(gg.getIndex()+1,ss.getIndex(), val[1]);
 		}
+
+
+	}
+
+	@Override
+	public void set(Site ss, Diplotype dd, byte[] val) {
+		if (val == null) {
+			setObserved(ss, dd, false);
+		} else {
+			setAllele(dd.getIndex(), ss.getIndex(), val[0]);
+			setAllele(dd.getIndex()+1, ss.getIndex(), val[1]);
+		}
+
+	}
+
+	@Override
+	public void set(Site ss, Haplotype hh, byte val) {
+		setAllele(hh.getIndex(), ss.getIndex(), val);
 	}
 
 	@Override
@@ -413,15 +410,15 @@ public class IntDataSet implements DataSet<Integer>, Serializable {
 		if (!isObserved(ss, gg)) {
 			return new GenotypeValue(-1);
 		} else {
-			return new GenotypeValue((getAllele(ss.getIndex(), gg.getIndex()))
-					+ (getAllele(ss.getIndex(), gg.getIndex()+1)));
+			return new GenotypeValue((getAllele(gg.getIndex(),ss.getIndex()))
+					+ (getAllele(gg.getIndex()+1,ss.getIndex())));
 		}
 	}
 
 	@Override
-	public DataSet<Integer> combine(DataSet<Integer> other) {
+	public ArrayDataSet<byte[]> combine(ArrayDataSet<byte[]> other) {
 		SortedSet<GlobalSite> combined = new TreeSet();
-		
+
 		for (Site site : getSites()) {
 			combined.add(site.globalize());
 		}
@@ -429,19 +426,19 @@ public class IntDataSet implements DataSet<Integer>, Serializable {
 		for (Site site : other.getSites()) {
 			combined.add(site.globalize());
 		}
-		
-		DataSet<Integer> data = new IntDataSet(combined.size(), numSequences() + other.numSequences());
-		
+
+		ArrayDataSet<byte[]> data = new IntDataSet(combined.size(), numSequences() + other.numSequences());
+
 		for (GlobalSite site : combined) {
 			data.addSite(site);
 		}
 
 		for (Genotype gg : getGenotypes()) {
-			Integer[][] x = new Integer[combined.size()][2];
+			byte[][] x = new byte[combined.size()][2];
 			for (int t = 0 ; t < combined.size(); t++) {
-				x[t] = new Integer[] { null, null };
+				x[t] = new byte[] { -1, -1 };
 			}
-			
+
 			for (GlobalSite site : combined) {
 				Site ss = localize(site);
 				if (ss != null) {
@@ -450,11 +447,11 @@ public class IntDataSet implements DataSet<Integer>, Serializable {
 			}
 			data.addGenotype(gg.getName(), x);
 		}
-		
+
 		for (Diplotype dd : getDiplotypes()) {
-			Integer[][] x = new Integer[combined.size()][2];
+			byte[][] x = new byte[combined.size()][2];
 			for (int t = 0 ; t < combined.size(); t++) {
-				x[t] = new Integer[] { null, null };
+				x[t] = new byte[] { -1, -1 };
 			}
 			for (GlobalSite site : combined) {
 				Site ss = localize(site);
@@ -464,26 +461,26 @@ public class IntDataSet implements DataSet<Integer>, Serializable {
 			}
 			data.addDiplotype(dd.getName(), x);
 		}
-		
+
 		for (Haplotype hh : getHaplotypes()) {
-			Integer[] x = new Integer[combined.size()];
+			byte[] x = new byte[combined.size()];
 			for (int t = 0 ; t < combined.size(); t++) {
-				x[t] = null;
+				x[t] = -1;
 			}
 			for (GlobalSite site : combined) {
 				Site ss = localize(site);
 				if (ss != null) {
-					x[data.localize(site).getIndex()] = get(ss, hh);
+					x[data.localize(site).getIndex()] = getAllele(ss, hh);
 				}
 			}
 			data.addHaplotype(hh.getName(), x);
 		}
 
-		
+
 		for (Genotype gg : other.getGenotypes()) {
-			Integer[][] x = new Integer[combined.size()][2];
+			byte[][] x = new byte[combined.size()][2];
 			for (int t = 0 ; t < combined.size(); t++) {
-				x[t] = new Integer[] { null, null };
+				x[t] = new byte[] { -1, -1 };
 			}
 			for (GlobalSite site : combined) {
 				Site ss = other.localize(site);
@@ -493,11 +490,11 @@ public class IntDataSet implements DataSet<Integer>, Serializable {
 			}
 			data.addGenotype(gg.getName(), x);
 		}
-		
+
 		for (Diplotype dd : other.getDiplotypes()) {
-			Integer[][] x = new Integer[combined.size()][2];
+			byte[][] x = new byte[combined.size()][2];
 			for (int t = 0 ; t < combined.size(); t++) {
-				x[t] = new Integer[] { null, null };
+				x[t] = new byte[] { -1, -1 };
 			}
 			for (GlobalSite site : combined) {
 				Site ss = other.localize(site);
@@ -507,54 +504,54 @@ public class IntDataSet implements DataSet<Integer>, Serializable {
 			}
 			data.addDiplotype(dd.getName(), x);
 		}
-		
+
 		for (Haplotype hh : other.getHaplotypes()) {
-			Integer[] x = new Integer[combined.size()];
+			byte[] x = new byte[combined.size()];
 			for (int t = 0 ; t < combined.size(); t++) {
-				x[t] = null;
+				x[t] = -1;
 			}
 			for (GlobalSite site : combined) {
 				Site ss = other.localize(site);
 				if (ss != null) {
-					x[data.localize(site).getIndex()] = other.get(ss, hh);
-					
+					x[data.localize(site).getIndex()] = other.getAllele(ss, hh);
+
 				}
 			}
 			data.addHaplotype(hh.getName(), x);
 		}
-		
+
 		return data;
 	}
-	
+
 	@Override
-	public DataSet<Integer> filterSequences(List<Sequence> sequences) {
+	public ArrayDataSet<byte[]> filterSequences(List<Sequence> sequences) {
 		IntDataSet data = new IntDataSet(this.numSites(), sequences.size());
 		for (Site site : this.getSites()) {
 			data.addSite(site.globalize());
 		}
-		
+
 		for (Sequence hh : sequences) {
-			Integer x[] = new Integer[data.numSites()];
+			byte[] x = new byte[data.numSites()];
 			for (Site site : getSites()) {
 				Haplotype other = this.getHaplotype(hh.getName());
 				Site ss = data.localize(site.globalize());
-				x[ss.getIndex()] = get(site, other);
+				x[ss.getIndex()] = getAllele(site, other);
 			}
 			data.addHaplotype(hh.getName(), x);
 		}
 		return data;
-		
+
 	}
 
 	@Override
-	public DataSet<Integer> filter(List<GlobalSite> filtered_sites) {
+	public ArrayDataSet<byte[]> filter(List<GlobalSite> filtered_sites) {
 		IntDataSet other = new IntDataSet(filtered_sites.size(), this.numSequences());
 		for (GlobalSite site : filtered_sites) {
 			other.addSite(site);
 		}
 
 		for (Genotype gg : getGenotypes()) {
-			Integer x[][] = new Integer[other.numSites()][2];
+			byte x[][] = new byte[other.numSites()][2];
 			for (Site site : other.getSites()) {
 				Site ss = localize(site.globalize());
 				x[site.getIndex()] = get(ss, gg);
@@ -562,19 +559,19 @@ public class IntDataSet implements DataSet<Integer>, Serializable {
 			other.addGenotype(gg.getName(), x);
 		}
 		for (Diplotype dd : getDiplotypes()) {
-			Integer x[][] = new Integer[other.numSites()][2];
+			byte x[][] = new byte[other.numSites()][2];
 			for (Site site : other.getSites()) {
 				Site ss = localize(site.globalize());
 				x[site.getIndex()] = get(ss, dd);
 			}
 			other.addDiplotype(dd.getName(), x);
 		}
-		
+
 		for (Haplotype hh : getHaplotypes()) {
-			Integer x[] = new Integer[other.numSites()];
+			byte x[] = new byte[other.numSites()];
 			for (Site site : other.getSites()) {
 				Site ss = localize(site.globalize());
-				x[site.getIndex()] = get(ss, hh);
+				x[site.getIndex()] = getAllele(ss, hh);
 			}
 			other.addHaplotype(hh.getName(), x);
 		}
@@ -585,7 +582,7 @@ public class IntDataSet implements DataSet<Integer>, Serializable {
 	public boolean isHeterozygous(Site ss, Genotype gg) {
 		return get(ss,gg)[0]!=get(ss,gg)[1];
 	}
-	
+
 	public int getMaxAlleles() {
 		return max_alleles_at_any_site;
 	}

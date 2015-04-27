@@ -8,6 +8,7 @@ package programs;
 import java.util.*;
 import java.io.*;
 
+import popgenIO.Core.ArrayDataSet;
 import popgenIO.Core.DataSet;
 import popgenIO.Formats.BeagleFile;
 import popgenIO.Formats.FlatFile;
@@ -72,7 +73,7 @@ public class convert {
 		Format output_format = Format.valueOf(args[2]);
 		String output = args[3];
 
-		DataSet<Boolean> dataset = null;
+		ArrayDataSet<byte[]> dataset = null;
 
 		switch (input_format) {
 		case Flat:

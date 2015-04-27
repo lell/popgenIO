@@ -8,12 +8,13 @@ import java.util.*;
 import java.util.zip.*;
 import java.io.*;
 
+import popgenIO.Core.ArrayDataSet;
 import popgenIO.Core.DataSet;
 import popgenIO.Core.BitDataSet;
 import popgenIO.Core.Genotype;
 import popgenIO.Core.Haplotype;
+import popgenIO.Core.IntDataSet;
 import popgenIO.Core.Site;
-
 import libnp.statistics.Generator;
 import static libnp.util.Operation.removeExtention;
 
@@ -60,7 +61,7 @@ public class BeagleFile {
 		}
 	}
 
-	public static DataSet read(String filename) throws Exception {
+	public static ArrayDataSet read(String filename) throws Exception {
 		String snpfile = getSnpFile(filename);
 		String markerfile = getMarkerFile(filename);
 
@@ -70,7 +71,7 @@ public class BeagleFile {
 		List<String> sequences = new ArrayList<String>(snps.keySet());
 		Collections.sort(sequences);
 		Site[] sites = makeSiteMap(markermap);
-		DataSet<Boolean> gds = new BitDataSet(sites.length, 2 * snps.size());
+		ArrayDataSet<byte[]> gds = new IntDataSet(sites.length, 2 * snps.size());
 		
 		for (Site site : sites) {
 			gds.addSite(site.globalize());
@@ -79,19 +80,19 @@ public class BeagleFile {
 		for (String sequence_name : sequences) {
 			if (sequence_name.startsWith("H")) {
 				Map<String, Integer[]> sequence = snps.get(sequence_name);
-				Boolean[] allele_data0 = new Boolean[sites.length];
-				Boolean[] allele_data1 = new Boolean[sites.length];
+				byte[] allele_data0 = new byte[sites.length];
+				byte[] allele_data1 = new byte[sites.length];
 				int i = 0;
 				for (Site site : sites) {
 
 					String marker = site.getName();
 					if (!sequence.containsKey(marker)) {
 						// unobserved
-						allele_data0[i] = null;
-						allele_data1[i] = null;
+						allele_data0[i] = -1;
+						allele_data1[i] = -1;
 					} else {
-						allele_data0[i] = sequence.get(marker)[0] == site.getAlleles()[0];
-						allele_data1[i] = sequence.get(marker)[1] == site.getAlleles()[0];
+						allele_data1[i] = sequence.get(marker)[1].byteValue();
+						allele_data0[i] = sequence.get(marker)[0].byteValue();
 					}
 					i++;
 				}
@@ -100,17 +101,17 @@ public class BeagleFile {
 
 			} else if (sequence_name.startsWith("G") || sequence_name.startsWith("D")) {
 				Map<String, Integer[]> sequence = snps.get(sequence_name);
-				Boolean[][] allele_data = new Boolean[sites.length][2];
+				byte[][] allele_data = new byte[sites.length][2];
 				int i = 0;
 				for (Site site : sites) {
 					String marker = site.getName();
 					if (!sequence.containsKey(marker)) {
 						// unobserved
-						allele_data[i][0] = null;
-						allele_data[i][1] = null;
+						allele_data[i][0] = -1;
+						allele_data[i][1] = -1;
 					} else {
-						allele_data[i][0] = sequence.get(marker)[0] == site.getAlleles()[0];
-						allele_data[i][1] = sequence.get(marker)[1] == site.getAlleles()[0];
+						allele_data[i][0] = sequence.get(marker)[0].byteValue();
+						allele_data[i][1] = sequence.get(marker)[1].byteValue();
 					}
 					i++;
 				}
@@ -313,14 +314,14 @@ public class BeagleFile {
 		return true;
 	}
 
-	public static void write(DataSet gds, String filename)
+	public static void write(ArrayDataSet gds, String filename)
 			throws Exception {
 		
 		writeMarkers(filename + ".markers.gz", gds);
 		writeSNPs(filename + ".bgl.gz", gds);
 	}
 
-	private static void writeMarkers(String mapfile, DataSet<Boolean> gds)
+	private static void writeMarkers(String mapfile, ArrayDataSet<byte[]> gds)
 			throws Exception {
 		
 		PrintStream out = new PrintStream(mapfile);
@@ -342,7 +343,7 @@ public class BeagleFile {
 		out.close();
 	}
 
-	private static void writeSNPs(String snpfile, DataSet<Boolean> gds) throws Exception {
+	private static void writeSNPs(String snpfile, ArrayDataSet<byte[]> gds) throws Exception {
 		
 		PrintStream out = new PrintStream(new GZIPOutputStream(
 				new FileOutputStream(snpfile)));
@@ -370,13 +371,13 @@ public class BeagleFile {
 			out.print(site.getName());
 			for (Genotype geno : gds.getGenotypes()) {
 				out.print(" ");
-				Boolean[] alleles = gds.get(site, geno);
-				if (alleles[0] == null) {
-					assert alleles[1] == null;
+				byte[] alleles = gds.get(site, geno);
+				if (alleles[0] == -1) {
+					assert alleles[1] == -1;
 					out.print("? ? ");
 				} else {
-					int a0 = alleles[0]?1:0;
-					int a1 = alleles[1]?1:0;
+					byte a0 = alleles[0];
+					byte a1 = alleles[1];
 
 					// beagle cares about order for initialisation, so randomize it.
 					if (gen.nextBoolean()) {
@@ -393,11 +394,11 @@ public class BeagleFile {
 
 			for (Haplotype hh : gds.getHaplotypes()) {
 				out.print(" ");
-				Boolean allele = gds.get(site, hh);
-				if (allele == null) {
+				byte allele = gds.getAllele(site, hh);
+				if (allele == -1) {
 					out.print("?");
 				} else {
-					out.print(site.getAlleles()[allele?1:0]);
+					out.print(allele);
 				}
 			}
 			out.println();

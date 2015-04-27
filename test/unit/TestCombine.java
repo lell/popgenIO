@@ -2,7 +2,6 @@ package unit;
 
 import static org.junit.Assert.*;
 import static popgenIO.Paths.getTestDirectory;
-
 import static libnp.util.Operation.dump;
 import static libnp.util.Operation.undump;
 
@@ -10,6 +9,7 @@ import java.io.File;
 
 import org.junit.Test;
 
+import popgenIO.Core.ArrayDataSet;
 import popgenIO.Core.DataSet;
 import popgenIO.Formats.FlatFile;
 
@@ -35,10 +35,10 @@ public class TestCombine {
 		dump(testdir + "/ref.sites", ref_sites);
 		dump(testdir + "/ref.samples", ref_samples);
 		
-		DataSet<Boolean> study_data = FlatFile.read(testdir + "/study");
-		DataSet<Boolean> ref_data = FlatFile.read(testdir + "/ref");
+		ArrayDataSet<byte[]> study_data = FlatFile.read(testdir + "/study");
+		ArrayDataSet<byte[]> ref_data = FlatFile.read(testdir + "/ref");
 		
-		DataSet<Boolean> combined = ref_data.combine(study_data);
+		ArrayDataSet<byte[]> combined = ref_data.combine(study_data);
 		
 		FlatFile.write(combined, testdir + "/combined");
 		

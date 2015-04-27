@@ -22,17 +22,19 @@ import java.util.Scanner;
 import java.util.zip.GZIPInputStream;
 
 import static java.lang.Math.round;
+import popgenIO.Core.ArrayDataSet;
 import popgenIO.Core.DataSet;
 import popgenIO.Core.BitDataSet;
 import popgenIO.Core.Genotype;
 import popgenIO.Core.Haplotype;
+import popgenIO.Core.IntDataSet;
 import popgenIO.Core.Site;
 import static libnp.util.Float.compareFloats;
 	    
 public class FlatFile {
 
 	// This should load ANY kind of .phase file (spaces, names, prefixes) or just a square matrix of 0/1/? as long as the names aren't like 010101 (can have #sites = 100)
-	public static DataSet read(Scanner fr, Scanner fst, Scanner fsm) {
+	public static ArrayDataSet read(Scanner fr, Scanner fst, Scanner fsm) {
 		List<String> lines = new ArrayList();
 		int numsites = 0;
 		
@@ -70,7 +72,7 @@ public class FlatFile {
 		assert lines.size()>0;
 		assert numsites == lines.get(0).length();
 		int numSequences = lines.size();
-		DataSet data = new BitDataSet(numsites, numSequences);
+		ArrayDataSet data = new IntDataSet(numsites, numSequences);
 		
 		if (fst != null) {
 			for (int t = 0; t < numsites; t++) {
@@ -154,7 +156,7 @@ public class FlatFile {
 		return data;
 	}
 	
-	public static DataSet read(String filename) {
+	public static ArrayDataSet read(String filename) {
 		Scanner fr;
 		Scanner fst = null;
 		Scanner fsm = null;
@@ -214,7 +216,7 @@ public class FlatFile {
 		return read(fr, fst, fsm);
 	}
 
-	public static void write(DataSet<Boolean> data, BufferedWriter output, BufferedWriter bst, BufferedWriter bsm) {
+	public static void write(ArrayDataSet<byte[]> data, BufferedWriter output, BufferedWriter bst, BufferedWriter bsm) {
 		int numsequences = data.numSequences();
 		int numsites = data.numSites();
 		try {
@@ -222,11 +224,9 @@ public class FlatFile {
 				for (Site site : data.getSites()) {
 					if (!data.isObserved(site, haplotype)) {
 						output.write("?");
-					} else if (data.get(site, haplotype)) {
-						output.write("1");
-					} else {
-						output.write("0");
-					}
+					} else 
+						output.write(data.getAllele(site, haplotype));
+
 				}
 				output.write("\n");
 			}
@@ -235,13 +235,9 @@ public class FlatFile {
 					if (!data.isObserved(site, genotype)) {
 						output.write("?");
 					} else if (data.get(site, genotype)[0]==data.get(site, genotype)[1]) {
-						if(data.get(site, genotype)[0]) {
-							output.write("1");
-						} else {
-							output.write("0");
-						}
+						output.write(data.get(site, genotype)[0]);
 					} else {
-						output.write("2");
+						output.write("1");
 					}
 				}
 			}
@@ -286,7 +282,7 @@ public class FlatFile {
 		}
 	}
 
-	public static void write(DataSet<Boolean> data, String filename) {
+	public static void write(ArrayDataSet<byte[]> data, String filename) {
 		try {
 			write(data,
 					new BufferedWriter(new FileWriter(new File(filename))),

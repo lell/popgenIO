@@ -9,13 +9,13 @@ import java.io.IOException;
 
 import org.junit.Test;
 
+import popgenIO.Core.ArrayDataSet;
 import popgenIO.Core.BitDataSet;
 import popgenIO.Core.DataSet;
 import popgenIO.Core.Haplotype;
 import popgenIO.Core.Site;
 import popgenIO.Formats.FlatFile;
 import static popgenIO.Paths.getTestDirectory;
-
 import static libnp.util.Operation.dump;
 import static libnp.util.Operation.undump;
 
@@ -32,7 +32,7 @@ public class TestFlatFile {
 		dump(fin, main_content);
 		dump(fin + ".sites", site_content);
 		
-		DataSet<Boolean> data = FlatFile.read(fin);
+		ArrayDataSet<byte[]> data = FlatFile.read(fin);
 		
 		String fout = testdir + "/tst01_out";
 		FlatFile.write(data, fout);
@@ -53,7 +53,7 @@ public class TestFlatFile {
 		dump(fin, main_content);
 		dump(fin + ".samples", sample_content);
 		
-		DataSet<Boolean> data = FlatFile.read(fin);
+		ArrayDataSet<byte[]> data = FlatFile.read(fin);
 		
 		String fout = testdir + "/tsm01_out";
 		FlatFile.write(data, fout);
@@ -76,18 +76,18 @@ public class TestFlatFile {
 			fail();
 		}
 		
-		DataSet<Boolean> bds = FlatFile.read(testdir + "out");
+		ArrayDataSet<byte[]> bds = FlatFile.read(testdir + "out");
 		assertTrue(bds.numSites() == data[0].length);
 		assertTrue(bds.numSequences() == data.length);
 		
 		for (Haplotype hh : bds.getHaplotypes()) {
 			for (Site ss : bds.getSites()) {
-				Boolean allele = bds.get(ss, hh);
-				if (allele == null) {
+				byte allele = bds.getAllele(ss, hh);
+				if (allele == -1) {
 					assertTrue(data[hh.getIndex()][ss.getIndex()] == -1);
-				} else if (allele == false) {
+				} else if (allele == 0) {
 					assertTrue(data[hh.getIndex()][ss.getIndex()] == 0);
-				} else if (allele = true) {
+				} else if (allele == 1) {
 					assertTrue(data[hh.getIndex()][ss.getIndex()] == 1);
 				}
 			}
