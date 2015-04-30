@@ -90,7 +90,7 @@ public class VCFFile {
 				// If we want to correctly parse the alleles, we need to change Site from char[] to String[]
 				for (int i = 9; i < parts.length; i++) {
 					if(parts[i].contains("/"))
-						isGenotype[i]=true;
+						isGenotype[i-9]=true;
 				}
 				if(line_counter==0) {
 					pos = Integer.parseInt(parts[1]);
@@ -98,8 +98,8 @@ public class VCFFile {
 					// format column, figure out where the genotype is
 					parts2 = parts[8].split(":");
 					for (int i = 0; i < parts2.length; i++) {
-						parts[i].equals("GT");
-						genotype_index = i;
+						if(parts[i].equals("GT"))
+							genotype_index = i;
 					}
 				}
 

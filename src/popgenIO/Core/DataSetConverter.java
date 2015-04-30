@@ -12,18 +12,16 @@ public class DataSetConverter implements Collectable {
 		this.cc = cc;
 	}
 	
-	private Integer[][] convert(DataSet<Integer> data) {
+	private Byte[][] convert(ArrayDataSet<byte[]> data) {
 		int N = data.numSequences();
 		int T = data.numSites();
-		Integer[][] matrix = new Integer[N][T];
+		Byte[][] matrix = new Byte[N][T];
 		int hid = 0;
 		for (Haplotype hh : data.getHaplotypes()) {
 			int sid = 0;
 			for (Site ss : data.getSites()) {
-				Integer val = data.get(ss, hh);
-				if (val == null) {
-					matrix[hid][sid] = -1;
-				} else matrix[hid][sid] = val.intValue();
+				byte val = data.getAllele(ss, hh);
+				matrix[hid][sid] = val;
 				sid++;
 			}
 			hid++;
@@ -31,13 +29,9 @@ public class DataSetConverter implements Collectable {
 		for (Diplotype dd : data.getDiplotypes()) {
 			int sid = 0;
 			for (Site ss : data.getSites()) {
-				Integer[] val = data.get(ss, dd);
-				if (val[0] == null) {
-					matrix[hid][sid] = -1;
-				} else matrix[hid][sid] = val[0].intValue();
-				if (val[1] == null) {
-					matrix[hid+1][sid] = -1;
-				} else matrix[hid][sid] = val[1].intValue();
+				byte[] val = data.get(ss, dd);
+				matrix[hid][sid] = val[0];
+				matrix[hid+1][sid] = val[1];
 				sid++;
 			}
 			hid+=2;
@@ -46,12 +40,12 @@ public class DataSetConverter implements Collectable {
 	}
 	@Override
 	public Object get(String property_name) {
-		return convert((DataSet)cc.get(property_name));
+		return convert((ArrayDataSet)cc.get(property_name));
 	}
 
 	@Override
 	public Object get(String property_name, Object arg) {
-		return convert((DataSet)cc.get(property_name, arg));
+		return convert((ArrayDataSet)cc.get(property_name, arg));
 	}
 
 }
