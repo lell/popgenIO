@@ -172,8 +172,13 @@ public class VCFFile {
 				String varname = parts[2];
 				if(varname.equals("."))
 					varname = "VAR_" + chromosome + "_" + varpos;
+				
+				byte[] alleles = new byte[parts[4].split(",").length+1];
+				for (int i = 0; i < alleles.length; i++) {
+					alleles[i]=(byte)i;
+				}
 				sites[site_cnt] = new Site(site_cnt, normalize(varpos,(double)minPosition,(double)maxPosition), 
-						varname, new int[]{0,1});
+						varname, alleles);
 				GlobalSite currentSite = sites[site_cnt++].globalize();
 				gds.addSite(currentSite);
 				for (int i = 9; i < parts.length; i++) {

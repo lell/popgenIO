@@ -36,7 +36,7 @@ public class Site extends AbstractSite implements Serializable {
 		assert getName() != null;
 	}
 	
-	public Site(int index, double position, String name, int[] alleles) {
+	public Site(int index, double position, String name, byte[] alleles) {
 		if (name == null) {
 			if (compareFloats(position, round(position), 1e-10) == 0) {
 				name = String.format("S%010d", (int)position);
@@ -46,7 +46,7 @@ public class Site extends AbstractSite implements Serializable {
 		}
 		
 		if (alleles == null) {
-			alleles = new int[]{ 0, 1 };
+			alleles = new byte[]{ 0, 1 };
 		}
 		this.setPosition(position);
 		this.setName(name);

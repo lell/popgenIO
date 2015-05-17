@@ -12,7 +12,7 @@ import static libnp.util.Float.compareFloats;
 
 
 public class GlobalSite extends AbstractSite implements Comparable, Serializable {
-	public GlobalSite(double position, String name, int[] alleles) {
+	public GlobalSite(double position, String name, byte[] alleles) {
 		assert position >= 0;
 		assert name != null;
 		assert alleles != null;
