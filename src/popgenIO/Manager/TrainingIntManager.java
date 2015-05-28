@@ -26,7 +26,8 @@ public class TrainingIntManager extends AbstractIntManager implements Serializab
 	}
 
 	public void wantUnobserved() {
-		ArrayDataSet<byte[]> trainset = this.getTrainingSet();
+		//ArrayDataSet<byte[]> trainset = this.getTrainingSet();
+		ArrayDataSet<byte[]> trainset = this.getAllData();
 		for (Site ss : trainset.getSites()) {
 			for (Genotype gg : trainset.getGenotypes()) {
 				if (!trainset.isObserved(ss, gg)) {
@@ -50,7 +51,8 @@ public class TrainingIntManager extends AbstractIntManager implements Serializab
 	}
 	
 	public void wantUnphased() {
-		ArrayDataSet<byte[]> trainset = this.getTrainingSet();
+		//ArrayDataSet<byte[]> trainset = this.getTrainingSet();
+		ArrayDataSet<byte[]> trainset = this.getAllData();
 		for (Site ss : trainset.getSites()) {
 			for (Genotype gg : trainset.getGenotypes()) {
 				if (trainset.isHeterozygous(ss, gg)) {

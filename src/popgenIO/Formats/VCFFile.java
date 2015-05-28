@@ -152,7 +152,11 @@ public class VCFFile {
 		// indexed by [number of genotypes/diplotypes][which sequence (doesn't matter for genotypes)][number of sites]
 		//int[][][] genotypes_and_diplotypes = new int[num_individuals][2][line_counter];
 		line_counter=0;
-
+		int varpos;
+		String varname;
+		byte[] alleles;
+		String genotype;
+		
 		while ((line=reader.readLine())!=null) {
 			if (line.startsWith("#") || line.trim().equals("")) {
 				// header information we ignore
@@ -168,12 +172,12 @@ public class VCFFile {
 				}
 
 				// If we want to correctly parse the alleles, we need to change Site from char[] to String[]
-				int varpos = Integer.parseInt(parts[1]);
-				String varname = parts[2];
+				varpos = Integer.parseInt(parts[1]);
+				varname = parts[2];
 				if(varname.equals("."))
 					varname = "VAR_" + chromosome + "_" + varpos;
 				
-				byte[] alleles = new byte[parts[4].split(",").length+1];
+				alleles = new byte[parts[4].split(",").length+1];
 				for (int i = 0; i < alleles.length; i++) {
 					alleles[i]=(byte)i;
 				}
@@ -183,7 +187,7 @@ public class VCFFile {
 				gds.addSite(currentSite);
 				for (int i = 9; i < parts.length; i++) {
 					// inside specification of genotypes
-					String genotype = parts[i].split(":")[genotype_index];
+					genotype = parts[i].split(":")[genotype_index];
 					parts2 = genotype.split("\\||/");
 
 					if(genotype.contains("|")) {

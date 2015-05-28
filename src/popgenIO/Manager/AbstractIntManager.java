@@ -495,12 +495,13 @@ abstract class AbstractIntManager implements ArrayManager<byte[]>, Cloneable, Se
 
 	@Override
 	public ArrayDataSet<byte[]> getAllData() {
-		return allData.clone();
+		return allData;
 	}
 
 	@Override
 	public ArrayDataSet<byte[]> getTrainingSet() {
-		ArrayDataSet<byte[]>trainset = allData.clone();
+		//ArrayDataSet<byte[]>trainset = allData.clone();
+		ArrayDataSet<byte[]> trainset = this.getAllData();
 		assert trainset != null;
 		for (Site ss : trainset.getSites()) {
 			for (Genotype geno : trainset.getGenotypes()) {
@@ -522,7 +523,8 @@ abstract class AbstractIntManager implements ArrayManager<byte[]>, Cloneable, Se
 	@Override
 	public ArrayDataSet<byte[]>getTestSet() {
 		boolean hastest = false;
-		ArrayDataSet<byte[]>testset = allData.clone();
+		//ArrayDataSet<byte[]>testset = allData.clone();
+		ArrayDataSet<byte[]> testset = this.getAllData();
 		assert testset != null;
 		for (Site ss : testset.getSites()) {
 			for (Genotype geno : testset.getGenotypes()) {
@@ -573,7 +575,8 @@ abstract class AbstractIntManager implements ArrayManager<byte[]>, Cloneable, Se
 
 	@Override
 	public ArrayDataSet<byte[]> getPhasedSet() {
-		ArrayDataSet<byte[]> predicted = getTrainingSet().clone();
+		return this.getAllData();
+		/*ArrayDataSet<byte[]> predicted = getTrainingSet().clone();
 		for (Genotype gg : predicted.getGenotypes()) {
 			for (Site ss : predicted.getSites()) {
 				if(!isHeterozygous(ss, gg))
@@ -584,7 +587,7 @@ abstract class AbstractIntManager implements ArrayManager<byte[]>, Cloneable, Se
 				}
 			}
 		}
-		return predicted;
+		return predicted;*/
 	}
 
 	@Override
