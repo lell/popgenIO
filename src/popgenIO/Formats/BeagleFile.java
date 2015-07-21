@@ -16,9 +16,11 @@ import popgenIO.Core.Haplotype;
 import popgenIO.Core.IntDataSet;
 import popgenIO.Core.Site;
 import libnp.statistics.Generator;
+import libnp.util.Pair;
 import static libnp.util.Operation.removeExtention;
 
 public class BeagleFile {
+	
 	public static class ParseError extends Exception {
 		private static final long serialVersionUID = 1L;
 
@@ -71,7 +73,8 @@ public class BeagleFile {
 		List<String> sequences = new ArrayList<String>(snps.keySet());
 		Collections.sort(sequences);
 		Site[] sites = makeSiteMap(markermap);
-		ArrayDataSet<byte[]> gds = new IntDataSet(sites.length, 2 * snps.size());
+		Pair<Integer,Integer> min_max_pos = getMinMaxPos(markermap);
+		ArrayDataSet<byte[]> gds = new IntDataSet(sites.length, 2 * snps.size(),min_max_pos.left, min_max_pos.right);
 		
 		for (Site site : sites) {
 			gds.addSite(site.globalize());
@@ -121,6 +124,24 @@ public class BeagleFile {
 			}
 		}
 		return gds;
+	}
+
+	/**
+	 * @param markermap
+	 * @return
+	 */
+	private static Pair<Integer, Integer> getMinMaxPos(final Map<String, Integer[]> markermap) {
+		List<String> markers = new ArrayList<String>(markermap.keySet());
+		Collections.sort(markers, new Comparator<String>() {
+			@Override
+			public int compare(String sa, String sb) {
+				return markermap.get(sa)[0] - markermap.get(sb)[0];
+			}
+		});
+		int index = 0;
+		Integer min_pos = markermap.get(markers.get(0))[0];
+		Integer max_pos = markermap.get(markers.get(markers.size() - 1))[0];
+		return new Pair<Integer,Integer>(min_pos,max_pos);
 	}
 
 	private static Site[] makeSiteMap(final Map<String, Integer[]> markermap) {

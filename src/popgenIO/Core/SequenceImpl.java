@@ -47,6 +47,9 @@ public abstract class SequenceImpl implements Comparable<Sequence>, Sequence, Se
 		if (this.index != other.index) {
 			return false;
 		}
+		if (!this.name.equals(other.name)) {
+			return false;
+		}
 		return true;
 	}
 

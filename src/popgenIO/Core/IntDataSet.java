@@ -6,6 +6,8 @@ package popgenIO.Core;
 
 import java.util.BitSet;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.LinkedHashMap;
@@ -23,6 +25,7 @@ public class IntDataSet implements ArrayDataSet<byte[]>, Serializable {
 	int index;
 	int site_index = 0;
 	private int max_alleles_at_any_site = 0;
+	private int maxPosition=Integer.MAX_VALUE, minPosition=0;
 
 	SortedMap<String, Site> sites;
 	LinkedHashMap<String, Genotype> genotypes;
@@ -34,9 +37,11 @@ public class IntDataSet implements ArrayDataSet<byte[]>, Serializable {
 	List<Diplotype> dds;
 	List<Genotype> ggs;
 
-	public IntDataSet(int numsites, int numsequences) {
+	public IntDataSet(int numsites, int numsequences, int minPosition, int maxPosition) {
 		this.numsites = numsites;
 		this.numsequences = numsequences;
+		this.minPosition=minPosition;
+		this.maxPosition=maxPosition;
 		allele = new byte[numsequences][numsites];
 		sites = new TreeMap();
 		sss = new ArrayList<Site>();
@@ -49,7 +54,7 @@ public class IntDataSet implements ArrayDataSet<byte[]>, Serializable {
 	}
 
 	public IntDataSet(IntDataSet data) {
-		this(data.numsites, data.numsequences);
+		this(data.numsites, data.numsequences, data.getMinPosition(), data.getMaxPosition());
 
 		this.max_alleles_at_any_site = data.max_alleles_at_any_site;
 		this.allele = new byte[data.numsequences][data.numsites];
@@ -149,8 +154,8 @@ public class IntDataSet implements ArrayDataSet<byte[]>, Serializable {
 		return new IntDataSet(this);
 	}
 
-	public static IntDataSet unobserved(int T, int N) {
-		IntDataSet data = new IntDataSet(T, N);
+	public static IntDataSet unobserved(int T, int N, int min, int max) {
+		IntDataSet data = new IntDataSet(T, N, min, max);
 		for (int t = 0; t < T; t++) {
 			data.addSite(new Site(t).globalize());
 		}
@@ -233,8 +238,8 @@ public class IntDataSet implements ArrayDataSet<byte[]>, Serializable {
 		}
 		Genotype genotype = new Genotype(name, index);
 		for (int t = 0; t < numsites; t++) {
-			setAllele(index, t, data[0][t]);
-			setAllele(index+1, t, data[1][t]);
+			setAllele(index, t, data[t][0]);
+			setAllele(index+1, t, data[t][1]);
 		}
 		index += 2;
 		genotypes.put(name, genotype);
@@ -256,8 +261,8 @@ public class IntDataSet implements ArrayDataSet<byte[]>, Serializable {
 		}
 		Diplotype diplotype = new Diplotype(name, index);
 		for (int t = 0; t < numsites; t++) {
-			setAllele(index, t, data[0][t]);
-			setAllele(index+1, t, data[1][t]);
+			setAllele(index, t, data[t][0]);
+			setAllele(index+1, t, data[t][1]);
 		}
 		index += 2;
 		diplotypes.put(name, diplotype);
@@ -382,8 +387,8 @@ public class IntDataSet implements ArrayDataSet<byte[]>, Serializable {
 		if (val == null) {
 			setObserved(ss, gg, false);
 		} else {
-			setAllele(gg.getIndex(),ss.getIndex(),val[0]);
-			setAllele(gg.getIndex()+1,ss.getIndex(), val[1]);
+			setAllele(gg.getIndex(),sites.get(ss.getName()).getIndex(),val[0]);
+			setAllele(gg.getIndex()+1,sites.get(ss.getName()).getIndex(), val[1]);
 		}
 
 
@@ -394,15 +399,15 @@ public class IntDataSet implements ArrayDataSet<byte[]>, Serializable {
 		if (val == null) {
 			setObserved(ss, dd, false);
 		} else {
-			setAllele(dd.getIndex(), ss.getIndex(), val[0]);
-			setAllele(dd.getIndex()+1, ss.getIndex(), val[1]);
+			setAllele(dd.getIndex(), sites.get(ss.getName()).getIndex(), val[0]);
+			setAllele(dd.getIndex()+1, sites.get(ss.getName()).getIndex(), val[1]);
 		}
 
 	}
 
 	@Override
 	public void set(Site ss, Haplotype hh, byte val) {
-		setAllele(hh.getIndex(), ss.getIndex(), val);
+		setAllele(hh.getIndex(), sites.get(ss.getName()).getIndex(), val);
 	}
 
 	@Override
@@ -418,36 +423,61 @@ public class IntDataSet implements ArrayDataSet<byte[]>, Serializable {
 	@Override
 	public ArrayDataSet<byte[]> combine(ArrayDataSet<byte[]> other) {
 		SortedSet<GlobalSite> combined = new TreeSet();
+		Set<String> addedSites = new HashSet<String>();
+
+		int minPosition = Math.min(this.getMinPosition(), other.getMinPosition());
+		int maxPosition = Math.max(this.getMaxPosition(), other.getMaxPosition());
 
 		for (Site site : getSites()) {
-			combined.add(site.globalize());
+			if(!addedSites.contains(site.getName())) {
+				addedSites.add(site.getName());
+				site.setPosition(((((double)this.getMinPosition()+((double)this.getMaxPosition()-(double)this.getMinPosition())*site.getPosition()))-(double)minPosition)/(double)(maxPosition-minPosition));
+				combined.add(site.globalize());
+			}
 		}
-
+		
 		for (Site site : other.getSites()) {
-			combined.add(site.globalize());
+			if(!addedSites.contains(site.getName())) {
+				addedSites.add(site.getName());
+				site.setPosition(((((double)other.getMinPosition()+((double)other.getMaxPosition()-(double)other.getMinPosition())*site.getPosition()))-(double)minPosition)/(double)(maxPosition-minPosition));
+				combined.add(site.globalize());
+			}
 		}
 
-		ArrayDataSet<byte[]> data = new IntDataSet(combined.size(), numSequences() + other.numSequences());
+		Set<Haplotype> merged_ids = new HashSet<Haplotype>();
+		merged_ids.addAll(this.getHaplotypes());
+		merged_ids.addAll(other.getHaplotypes());
+
+
+		Set<Genotype> merged_genotype_ids = new HashSet<Genotype>();
+		merged_genotype_ids.addAll(this.getGenotypes());
+		merged_genotype_ids.addAll(other.getGenotypes());
+
+		Set<Diplotype> merged_diplotype_ids = new HashSet<Diplotype>();
+		merged_diplotype_ids.addAll(this.getDiplotypes());
+		merged_diplotype_ids.addAll(other.getDiplotypes());
+
+		ArrayDataSet<byte[]> data = new IntDataSet(combined.size(), 
+				merged_ids.size() + 2*merged_genotype_ids.size() + 2*merged_diplotype_ids.size(),minPosition,maxPosition);
 
 		for (GlobalSite site : combined) {
 			data.addSite(site);
-		}
+		}		
 
-		for (Genotype gg : getGenotypes()) {
-			byte[][] x = new byte[combined.size()][2];
+		for (Haplotype hh : getHaplotypes()) {
+			byte[] x = new byte[combined.size()];
 			for (int t = 0 ; t < combined.size(); t++) {
-				x[t] = new byte[] { -1, -1 };
+				x[t] = -1;
 			}
-
 			for (GlobalSite site : combined) {
 				Site ss = localize(site);
 				if (ss != null) {
-					x[data.localize(site).getIndex()] = get(ss, gg);
+					x[data.localize(site).getIndex()] = getAllele(ss, hh);
 				}
 			}
-			data.addGenotype(gg.getName(), x);
+			data.addHaplotype(hh.getName(), x); 
 		}
-
+		
 		for (Diplotype dd : getDiplotypes()) {
 			byte[][] x = new byte[combined.size()][2];
 			for (int t = 0 ; t < combined.size(); t++) {
@@ -461,36 +491,46 @@ public class IntDataSet implements ArrayDataSet<byte[]>, Serializable {
 			}
 			data.addDiplotype(dd.getName(), x);
 		}
-
-		for (Haplotype hh : getHaplotypes()) {
-			byte[] x = new byte[combined.size()];
-			for (int t = 0 ; t < combined.size(); t++) {
-				x[t] = -1;
-			}
-			for (GlobalSite site : combined) {
-				Site ss = localize(site);
-				if (ss != null) {
-					x[data.localize(site).getIndex()] = getAllele(ss, hh);
-				}
-			}
-			data.addHaplotype(hh.getName(), x);
-		}
-
-
-		for (Genotype gg : other.getGenotypes()) {
+		
+		for (Genotype gg : getGenotypes()) {
 			byte[][] x = new byte[combined.size()][2];
 			for (int t = 0 ; t < combined.size(); t++) {
 				x[t] = new byte[] { -1, -1 };
 			}
+
 			for (GlobalSite site : combined) {
-				Site ss = other.localize(site);
+				Site ss = localize(site);
 				if (ss != null) {
-					x[data.localize(site).getIndex()] = other.get(ss, gg);
+					x[data.localize(site).getIndex()] = get(ss, gg);
 				}
 			}
 			data.addGenotype(gg.getName(), x);
-		}
+		}		
 
+		for (Haplotype hh : other.getHaplotypes()) {
+			if(!this.haplotypes.containsKey(hh.getName())) {
+				byte[] x = new byte[combined.size()];
+				for (int t = 0 ; t < combined.size(); t++) {
+					x[t] = -1;
+				}
+				for (GlobalSite site : combined) {
+					Site ss = other.localize(site);
+					if (ss != null) {
+						x[data.localize(site).getIndex()] = other.getAllele(ss, hh);
+
+					}
+				}
+				data.addHaplotype(hh.getName(), x);
+			} else {
+				for (GlobalSite site : combined) {
+					Site ss = other.localize(site);
+					if (ss != null) {
+						data.set(ss, hh, other.getAllele(ss, hh));
+					}
+				}
+			}
+		}
+		
 		for (Diplotype dd : other.getDiplotypes()) {
 			byte[][] x = new byte[combined.size()][2];
 			for (int t = 0 ; t < combined.size(); t++) {
@@ -504,20 +544,34 @@ public class IntDataSet implements ArrayDataSet<byte[]>, Serializable {
 			}
 			data.addDiplotype(dd.getName(), x);
 		}
-
-		for (Haplotype hh : other.getHaplotypes()) {
-			byte[] x = new byte[combined.size()];
-			for (int t = 0 ; t < combined.size(); t++) {
-				x[t] = -1;
-			}
-			for (GlobalSite site : combined) {
-				Site ss = other.localize(site);
-				if (ss != null) {
-					x[data.localize(site).getIndex()] = other.getAllele(ss, hh);
-
+		
+		
+		for (Genotype gg : other.getGenotypes()) {
+			if(!this.genotypes.containsKey(gg.getName())) {
+				byte[][] x = new byte[combined.size()][2];
+				for (int t = 0 ; t < combined.size(); t++) {
+					x[t] = new byte[] { -1, -1 };
+				}
+				for (GlobalSite site : combined) {
+					Site ss = other.localize(site);
+					if (ss != null) {
+						x[data.localize(site).getIndex()] = other.get(ss, gg);
+					}
+				}
+				data.addGenotype(gg.getName(), x);
+			} else {
+				for (GlobalSite site : combined) {
+					Site ss = other.localize(site);
+					if (ss != null) {
+						data.set(ss, gg, other.getGenotypeValue(ss, gg).getGenotype());
+					}
 				}
 			}
-			data.addHaplotype(hh.getName(), x);
+		}
+
+		int sind = 0;
+		for (GlobalSite site : combined) {
+			data.localize(site).setIndex(sind++);
 		}
 
 		return data;
@@ -525,7 +579,7 @@ public class IntDataSet implements ArrayDataSet<byte[]>, Serializable {
 
 	@Override
 	public ArrayDataSet<byte[]> filterSequences(List<Sequence> sequences) {
-		IntDataSet data = new IntDataSet(this.numSites(), sequences.size());
+		IntDataSet data = new IntDataSet(this.numSites(), sequences.size(),this.minPosition, this.maxPosition);
 		for (Site site : this.getSites()) {
 			data.addSite(site.globalize());
 		}
@@ -545,7 +599,7 @@ public class IntDataSet implements ArrayDataSet<byte[]>, Serializable {
 
 	@Override
 	public ArrayDataSet<byte[]> filter(List<GlobalSite> filtered_sites) {
-		IntDataSet other = new IntDataSet(filtered_sites.size(), this.numSequences());
+		IntDataSet other = new IntDataSet(filtered_sites.size(), this.numSequences(),this.minPosition, this.maxPosition);
 		for (GlobalSite site : filtered_sites) {
 			other.addSite(site);
 		}
@@ -585,5 +639,37 @@ public class IntDataSet implements ArrayDataSet<byte[]>, Serializable {
 
 	public int getMaxAlleles() {
 		return max_alleles_at_any_site;
+	}
+
+	/* (non-Javadoc)
+	 * @see popgenIO.Core.ArrayDataSet#setMinPosition(int)
+	 */
+	@Override
+	public void setMinPosition(int pos) {
+		this.minPosition=pos;
+	}
+
+	/* (non-Javadoc)
+	 * @see popgenIO.Core.ArrayDataSet#setMaxPosition(int)
+	 */
+	@Override
+	public void setMaxPosition(int pos) {
+		this.maxPosition=pos;
+	}
+
+	/* (non-Javadoc)
+	 * @see popgenIO.Core.ArrayDataSet#getMinPosition()
+	 */
+	@Override
+	public int getMinPosition() {
+		return minPosition;
+	}
+
+	/* (non-Javadoc)
+	 * @see popgenIO.Core.ArrayDataSet#getMaxPosition()
+	 */
+	@Override
+	public int getMaxPosition() {
+		return maxPosition;
 	}
 }

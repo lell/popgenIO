@@ -8,7 +8,7 @@ import java.util.List;
 import java.io.Serializable;
 
 public interface ArrayDataSet<X> extends Serializable {
-	
+		
 	public abstract ArrayDataSet<X> clone();
 	/**
 	 * data[s] values: 0 : homozygous 0 1 : heterozygous 2 : homozygous 1 -1 :
@@ -73,6 +73,10 @@ public interface ArrayDataSet<X> extends Serializable {
 
 	public GenotypeValue getGenotypeValue(Site site, Genotype gg);
 
+	public abstract void setMinPosition(int pos);
+	public abstract void setMaxPosition(int pos);
+	public abstract int getMinPosition();
+	public abstract int getMaxPosition();
 
 	public ArrayDataSet<X> combine(ArrayDataSet<X> other);
 	public abstract ArrayDataSet<X> filter(List<GlobalSite> sites);

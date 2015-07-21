@@ -34,7 +34,7 @@ import static libnp.util.Float.compareFloats;
 public class FlatFile {
 
 	// This should load ANY kind of .phase file (spaces, names, prefixes) or just a square matrix of 0/1/? as long as the names aren't like 010101 (can have #sites = 100)
-	public static ArrayDataSet read(Scanner fr, Scanner fst, Scanner fsm) {
+	public static ArrayDataSet<byte[]> read(Scanner fr, Scanner fst, Scanner fsm) {
 		List<String> lines = new ArrayList();
 		int numsites = 0;
 		
@@ -72,7 +72,7 @@ public class FlatFile {
 		assert lines.size()>0;
 		assert numsites == lines.get(0).length();
 		int numSequences = lines.size();
-		ArrayDataSet data = new IntDataSet(numsites, numSequences);
+		ArrayDataSet data = new IntDataSet(numsites, numSequences,0,Integer.MAX_VALUE);
 		
 		if (fst != null) {
 			for (int t = 0; t < numsites; t++) {
@@ -101,7 +101,8 @@ public class FlatFile {
 				data.addSite(new Site(t).globalize());
 			}
 		}
-		
+		data.setMinPosition((int)((Site)data.getSites().get(0)).getPosition());
+		data.setMinPosition((int)((Site)data.getSites().get(data.getSites().size()-1)).getPosition());
 		List<String> names = new ArrayList();
 		if (fsm != null) {
 			for (int i = 0; i < numSequences; i++) {
@@ -113,30 +114,30 @@ public class FlatFile {
 		}
 		
 		for (int i = 0; i < numSequences; i++) {
-			Boolean[] haplotype = new Boolean[numsites];
-			Boolean[][] genotype = new Boolean[2][numsites];
+			byte[] haplotype = new byte[numsites];
+			byte[][] genotype = new byte[2][numsites];
 			boolean isGenotype = false;
 			for (int t = 0; t < numsites; t++) {
 				switch (lines.get(i).charAt(t)) {
 				case '0':
-					haplotype[t] = false;
-					genotype[0][t] = false;
-					genotype[1][t] = false;
+					haplotype[t] = 0;
+					genotype[0][t] = 0;
+					genotype[1][t] = 0;
 					break;
 				case '1':
-					haplotype[t] = true;
-					genotype[0][t] = true;
-					genotype[1][t] = true;
+					haplotype[t] = 1;
+					genotype[0][t] = 1;
+					genotype[1][t] = 1;
 					break;
 				case '?':
-					haplotype[t] = null;
-					genotype[0][t] = null;
-					genotype[1][t] = null;
+					haplotype[t] = -1;
+					genotype[0][t] = -1;
+					genotype[1][t] = -1;
 					break;
 				case '2':
 					isGenotype = true;
-					genotype[0][t] = true;
-					genotype[1][t] = false;
+					genotype[0][t] = 1;
+					genotype[1][t] = 0;
 					break;
 				default:
 					System.err.println("Unknown character in file: " + lines.get(i).charAt(t) + " " + new Integer(lines.get(i).charAt(t)));

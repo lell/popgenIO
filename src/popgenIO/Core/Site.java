@@ -59,6 +59,10 @@ public class Site extends AbstractSite implements Serializable {
 		return index;
 	}
 	
+	public void setIndex(int index) {
+		this.index = index;
+	}
+	
 	public GlobalSite globalize() {
 		return new GlobalSite(getPosition(), getName(), getAlleles());
 	}

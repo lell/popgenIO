@@ -37,4 +37,24 @@ public class GenotypeValue {
 			break;
 		}
 	}
+	
+	public byte[] getGenotype() {
+		switch(allele) {
+		case -1:
+			return new byte[] {-1,-1};
+			
+		case 0:
+			return new byte[] {0,0};
+			
+		case 1:
+			return new byte[] {0,1};
+			
+		case 2:
+			return new byte[] {1,1};
+			
+		default:
+			System.err.println("Unknown allele: " + allele);
+			return new byte[] {-1,-1};
+		}
+	}
 }
