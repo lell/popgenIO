@@ -64,6 +64,8 @@ public interface ArrayDataSet<X> extends Serializable {
 	public abstract byte getAllele(Site ss, Diplotype dd, int phase);
 	
 	public abstract byte getAllele(Site ss, Haplotype hh);
+	
+	public abstract float getAlleleFreq(int site, byte allele);
 
 	public abstract void set(Site ss, Genotype gg, X val);
 	

@@ -672,4 +672,18 @@ public class IntDataSet implements ArrayDataSet<byte[]>, Serializable {
 	public int getMaxPosition() {
 		return maxPosition;
 	}
+
+	/* (non-Javadoc)
+	 * @see popgenIO.Core.ArrayDataSet#getAlleleFreq(int, byte)
+	 */
+	@Override
+	public float getAlleleFreq(int site, byte allele) {
+		float cnt = 0f, all = 0f;
+		for (int i = 0; i < this.allele.length; i++) {
+			if(this.allele[i][site]==allele)
+				cnt++;
+			all++;
+		}
+		return cnt/all;
+	}
 }
