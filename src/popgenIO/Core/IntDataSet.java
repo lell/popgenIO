@@ -686,4 +686,8 @@ public class IntDataSet implements ArrayDataSet<byte[]>, Serializable {
 		}
 		return cnt/all;
 	}
+	
+	public byte[][] getAlleles() {
+		return allele;
+	}
 }
