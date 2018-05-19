@@ -12,12 +12,15 @@
 package popgenIO.Formats;
 
 import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.zip.GZIPInputStream;
 
 /**
  * @author Ouroboros
@@ -45,8 +48,10 @@ public class ClusterGraphFile {
 	}
 
 	public void init() throws IOException {
-		in = Files.newBufferedReader(Paths.get(fileName),
-				Charset.forName("UTF-8"));
+		if(fileName.endsWith(".gz"))
+			in = new BufferedReader(new InputStreamReader(new GZIPInputStream(new FileInputStream(fileName))));
+		else
+			in = Files.newBufferedReader(Paths.get(fileName),Charset.forName("UTF-8"));
 		line = in.readLine();
 		String[] parts = line.split(" ");
 		num_variants = Integer.parseInt(parts[0]);
